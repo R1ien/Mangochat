@@ -25,6 +25,15 @@ app.post('/message', (req, res) => {
   res.sendStatus(200);
 });
 
+app.post('/invite', (req, res) => {
+  const { from, to } = req.body;
+  if (!from || !to) return res.status(400).send("Missing from or to");
+
+  const channelName = "invite_" + to;
+  pusher.trigger(channelName, "chat-invite", { from });
+  res.sendStatus(200);
+});
+
 app.use(express.static('public'));
 
 const port = process.env.PORT || 3000;
