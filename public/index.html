@@ -77,15 +77,23 @@
   }
 
   // Accepter l'invitation
-  function acceptInvite() {
-    const from = window.inviteFrom;
-    isAccepted = true;
-    subscribeToChat(from);
-    document.getElementById("notif").style.display = "none";
-    partner = from;
-    document.getElementById("partnerCode").value = partner;
-    document.getElementById("input-area").style.display = "flex";
-  }
+function acceptInvite() {
+  const from = window.inviteFrom;
+  isAccepted = true;
+  subscribeToChat(from);
+  document.getElementById("notif").style.display = "none";
+  partner = from;
+  document.getElementById("partnerCode").value = partner;
+  document.getElementById("input-area").style.display = "flex";
+
+  // 🔴 INFORME L'AUTRE QU'IL EST ACCEPTÉ
+  fetch("/accept", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myCode, to: partner }),
+  });
+}
+
 
   // Refuser l'invitation
   function rejectInvite() {
