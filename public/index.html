@@ -1,47 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Chat Kian</title>
+  <meta charset="UTF-8" />
+  <title>Chat Kian Style WhatsApp</title>
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
+    #messages { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; }
+    .message { margin: 5px 0; padding: 8px 12px; border-radius: 15px; max-width: 70%; }
+    .from-me { background: #DCF8C6; margin-left: auto; }
+    .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
+    #input-area { display: flex; margin-top: 10px; }
+    #messageInput { flex: 1; padding: 10px; font-size: 16px; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
 </head>
 <body>
-  <h2>Ton code : <span id="myCode"></span></h2>
-  <input id="partnerCode" placeholder="Code de l'autre...">
-  <div id="messages" style="border:1px solid #ccc;height:300px;overflow-y:scroll"></div>
-  <input id="messageInput" placeholder="Ton message..."><button onclick="send()">Envoyer</button>
 
-  <script>
-    const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random()*900000).toString();
-    localStorage.setItem("code", myCode);
-    document.getElementById("myCode").textContent = myCode;
+<h2>Ton code : <span id="myCode"></span></h2>
+<input id="partnerCode" placeholder="Code de l'autre..." style="width: 100%; margin-bottom: 10px; padding: 8px;" />
 
-    let partner="", channel=null;
-    const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
+<div id="messages"></div>
 
-    document.getElementById("partnerCode").addEventListener("change", function() {
-      partner = this.value.trim();
-      const chName = "chat_" + [myCode, partner].sort().join("_");
-      if (channel) pusher.unsubscribe(channel.name);
-      channel = pusher.subscribe(chName);
-      channel.bind("new-message", data => {
-        const div = document.createElement("div");
-        div.textContent = (data.from===myCode ? "Toi: " : "Lui: ") + data.text;
-        document.getElementById("messages").appendChild(div);
-      });
-      document.getElementById("messages").innerHTML = `<em>Tu parles avec ${partner}</em><hr>`;
+<div id="input-area">
+  <input id="messageInput" placeholder="Écris un message..." autocomplete="off" />
+  <button onclick="send()">Envoyer</button>
+</div>
+
+<script>
+  const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
+  localStorage.setItem("code", myCode);
+  document.getElementById("myCode").textContent = myCode;
+
+  let partner = "";
+  let channel = null;
+
+  const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
+
+  function getChatChannel(a, b) {
+    return 'chat_' + [a, b].sort().join('_');
+  }
+
+  function addMessage(text, fromMe) {
+    const messagesDiv = document.getElementById("messages");
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "message " + (fromMe ? "from-me" : "from-them");
+    msgDiv.textContent = text;
+    messagesDiv.appendChild(msgDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  document.getElementById("partnerCode").addEventListener("change", function () {
+    partner = this.value.trim();
+    if (!partner) return;
+
+    if (channel) {
+      pusher.unsubscribe(channel.name);
+      document.getElementById("messages").innerHTML = "";
+    }
+
+    const chName = getChatChannel(myCode, partner);
+    channel = pusher.subscribe(chName);
+    channel.bind("new-message", function (data) {
+      const fromMe = data.from === myCode;
+      addMessage((fromMe ? "Toi: " : "Lui: ") + data.text, fromMe);
     });
 
-    function send() {
-      const text = document.getElementById("messageInput").value.trim();
-      if (!text || !partner) return;
-      fetch("https://mangochat.onrender.com", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ from: myCode, to: partner, text })
-      });
-      document.getElementById("messageInput").value="";
-    }
-  </script>
+    addMessage(`Tu parles avec ${partner}`, false);
+  });
+
+  function send() {
+    const textInput = document.getElementById("messageInput");
+    const text = textInput.value.trim();
+    if (!text || !partner) return;
+
+    addMessage("Toi: " + text, true);
+
+    fetch("/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner, text }),
+    });
+
+    textInput.value = "";
+    textInput.focus();
+  }
+</script>
+
 </body>
 </html>
