@@ -36,6 +36,7 @@
   let partner = "";
   let isAccepted = false;
   let currentChannel = null;
+  let invitationPending = false;
 
   const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
 
@@ -53,6 +54,7 @@
     subscribeToChat(partner);
     showNotification("✅ Conversation acceptée !");
     document.getElementById("input-area").style.display = "block";
+    invitationPending = false;
   });
 
   document.getElementById("partnerCode").addEventListener("change", function () {
@@ -64,6 +66,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
     }).then(() => {
+      invitationPending = true;
       showNotification("Invitation envoyée, en attente...");
     });
   });
