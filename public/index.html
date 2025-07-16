@@ -35,7 +35,7 @@
     function send() {
       const text = document.getElementById("messageInput").value.trim();
       if (!text || !partner) return;
-      fetch("https://chatkian.username.repl.co/message", {
+      fetch("https://mangochat.onrender.com", {
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ from: myCode, to: partner, text })
