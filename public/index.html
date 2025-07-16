@@ -51,12 +51,14 @@
   // Canal d'invitations perso
   const inviteChannel = pusher.subscribe("invite_" + myCode);
 
-  inviteChannel.bind("chat-invite", data => {
-    if (isAccepted) return; // déjà dans une conversation
+inviteChannel.bind("chat-accepted", data => {
+  if (data.from !== partner) return;
+  isAccepted = true;
+  subscribeToChat(partner);
+  document.getElementById("input-area").style.display = "flex";
+  showNotification("L'autre a accepté l'invitation !", false);
+});
 
-    showNotification(`${data.from} veut discuter avec toi.`, true);
-    window.inviteFrom = data.from; // sauvegarde qui invite
-  });
 
   // Fonction qui construit le nom du canal chat
   function getChatChannel(a, b) {
