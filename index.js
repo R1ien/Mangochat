@@ -1,46 +1,46 @@
 const express = require('express');
-const cors = require('cors');
-const Pusher = require('pusher');
-const path = require('path');
-
 const app = express();
+const Pusher = require('pusher');
+const cors = require('cors');
+
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 const pusher = new Pusher({
-  appId: 'YOUR_APP_ID', // ← Mets ton appId ici
-  key: '21da0af69d3d1b97e425',
-  secret: 'YOUR_SECRET', // ← Mets ton secret ici
-  cluster: 'eu',
+  appId: "2023592",
+  key: "21da0af69d3d1b97e425",
+  secret: "3de0052ed5c986f11bed",
+  cluster: "eu",
   useTLS: true
 });
 
-function getChatChannel(a, b) {
-  return 'chat_' + [a, b].sort().join('_');
-}
-
 app.post('/message', (req, res) => {
   const { from, to, text } = req.body;
-  const channel = getChatChannel(from, to);
-  pusher.trigger(channel, 'new-message', { from, text });
+  const channelName = getChatChannel(from, to);
+  pusher.trigger(channelName, 'new-message', { from, text });
   res.sendStatus(200);
 });
 
 app.post('/invite', (req, res) => {
   const { from, to } = req.body;
-  pusher.trigger("invite_" + to, "chat-invite", { from });
+  const channel = "invite_" + to;
+  pusher.trigger(channel, "chat-invite", { from });
   res.sendStatus(200);
 });
 
 app.post('/accept', (req, res) => {
   const { from, to } = req.body;
-  pusher.trigger("invite_" + to, "chat-accepted", { from });
+  const channel = "invite_" + from;
+  pusher.trigger(channel, "chat-accepted", { from: to });
   res.sendStatus(200);
 });
 
-app.use(express.static('public'));
+function getChatChannel(a, b) {
+  return "chat_" + [a, b].sort().join("_");
+}
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Serveur MangoChat lancé sur http://localhost:${port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Serveur démarré sur le port", PORT);
 });
