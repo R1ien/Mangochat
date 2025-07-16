@@ -2,17 +2,18 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Chat Kian Style WhatsApp</title>
+  <title>Chat avec invitation Kian</title>
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
-    #messages { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; }
+    #messages { border: 1px solid #ccc; height: 350px; overflow-y: scroll; padding: 10px; }
     .message { margin: 5px 0; padding: 8px 12px; border-radius: 15px; max-width: 70%; }
     .from-me { background: #DCF8C6; margin-left: auto; }
     .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
     #input-area { display: flex; margin-top: 10px; }
     #messageInput { flex: 1; padding: 10px; font-size: 16px; }
-    button { padding: 10px 20px; font-size: 16px; }
+    button { padding: 10px 20px; font-size: 16px; margin-left: 5px; }
+    #notif { background: #fffae6; border: 1px solid #ffd700; padding: 10px; margin-bottom: 10px; display: none; }
   </style>
 </head>
 <body>
@@ -20,27 +21,125 @@
 <h2>Ton code : <span id="myCode"></span></h2>
 <input id="partnerCode" placeholder="Code de l'autre..." style="width: 100%; margin-bottom: 10px; padding: 8px;" />
 
+<div id="notif"></div>
+
 <div id="messages"></div>
 
-<div id="input-area">
+<div id="input-area" style="display:none;">
   <input id="messageInput" placeholder="Écris un message..." autocomplete="off" />
   <button onclick="send()">Envoyer</button>
 </div>
 
 <script>
+  // Clés Pusher
+  const PUSHER_KEY = "21da0af69d3d1b97e425";
+  const PUSHER_CLUSTER = "eu";
+
+  // Ton code généré ou stocké
   const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
   localStorage.setItem("code", myCode);
   document.getElementById("myCode").textContent = myCode;
 
+  // Variables globales
   let partner = "";
   let channel = null;
+  let isAccepted = false;
 
-  const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
+  // Init Pusher en mode non abonné au chat encore
+  const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
 
+  // Canal d'invitations perso
+  const inviteChannel = pusher.subscribe("invite_" + myCode);
+
+  inviteChannel.bind("chat-invite", data => {
+    if (isAccepted) return; // déjà dans une conversation
+
+    showNotification(`${data.from} veut discuter avec toi.`, true);
+    window.inviteFrom = data.from; // sauvegarde qui invite
+  });
+
+  // Fonction qui construit le nom du canal chat
   function getChatChannel(a, b) {
-    return 'chat_' + [a, b].sort().join('_');
+    return "chat_" + [a, b].sort().join("_");
   }
 
+  // Affiche notification d'invitation avec boutons Oui/Non
+  function showNotification(msg, showButtons) {
+    const notif = document.getElementById("notif");
+    notif.innerHTML = msg;
+    if (showButtons) {
+      notif.innerHTML += `
+        <button onclick="acceptInvite()">Oui</button>
+        <button onclick="rejectInvite()">Non</button>
+      `;
+    }
+    notif.style.display = "block";
+  }
+
+  // Accepter l'invitation
+  function acceptInvite() {
+    const from = window.inviteFrom;
+    isAccepted = true;
+    subscribeToChat(from);
+    document.getElementById("notif").style.display = "none";
+    partner = from;
+    document.getElementById("partnerCode").value = partner;
+    document.getElementById("input-area").style.display = "flex";
+  }
+
+  // Refuser l'invitation
+  function rejectInvite() {
+    showNotification("Invitation refusée.", false);
+    setTimeout(() => { document.getElementById("notif").style.display = "none"; }, 2000);
+    window.inviteFrom = null;
+  }
+
+  // Abonnement au canal chat et gestion messages
+  function subscribeToChat(other) {
+    if (channel) {
+      pusher.unsubscribe(channel.name);
+      document.getElementById("messages").innerHTML = "";
+    }
+    const chName = getChatChannel(myCode, other);
+    channel = pusher.subscribe(chName);
+
+    channel.bind("new-message", data => {
+      const fromMe = data.from === myCode;
+      addMessage((fromMe ? "Toi: " : "Lui: ") + data.text, fromMe);
+    });
+
+    document.getElementById("messages").innerHTML = "";
+  }
+
+  // Envoyer une invitation quand on met un code
+  document.getElementById("partnerCode").addEventListener("change", function () {
+    const code = this.value.trim();
+    if (!code || code === myCode) {
+      alert("Met un code valide (différent du tien) !");
+      this.value = "";
+      return;
+    }
+    partner = code;
+    isAccepted = false;
+    // Envoie l'invitation à l'autre
+    const inviteChannelName = "invite_" + partner;
+
+    // Pour envoyer l'invitation, on doit appeler backend (via fetch)
+    // On va créer un endpoint /invite sur backend pour ça
+    fetch("/invite", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner }),
+    }).then(res => {
+      if (res.ok) {
+        showNotification("Invitation envoyée, en attente d'acceptation...", false);
+      } else {
+        alert("Erreur lors de l'envoi de l'invitation");
+      }
+    });
+  });
+
+  // Affiche un message dans la zone chat
   function addMessage(text, fromMe) {
     const messagesDiv = document.getElementById("messages");
     const msgDiv = document.createElement("div");
@@ -50,29 +149,11 @@
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  document.getElementById("partnerCode").addEventListener("change", function () {
-    partner = this.value.trim();
-    if (!partner) return;
-
-    if (channel) {
-      pusher.unsubscribe(channel.name);
-      document.getElementById("messages").innerHTML = "";
-    }
-
-    const chName = getChatChannel(myCode, partner);
-    channel = pusher.subscribe(chName);
-    channel.bind("new-message", function (data) {
-      const fromMe = data.from === myCode;
-      addMessage((fromMe ? "Toi: " : "Lui: ") + data.text, fromMe);
-    });
-
-    addMessage(`Tu parles avec ${partner}`, false);
-  });
-
+  // Envoi message via backend
   function send() {
     const textInput = document.getElementById("messageInput");
     const text = textInput.value.trim();
-    if (!text || !partner) return;
+    if (!text || !partner || !isAccepted) return;
 
     addMessage("Toi: " + text, true);
 
