@@ -1,15 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const Pusher = require('pusher');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const pusher = new Pusher({
-  appId: 'YOUR_APP_ID', // Mets ton appId ici
+  appId: 'YOUR_APP_ID', // ← Mets ton appId ici
   key: '21da0af69d3d1b97e425',
-  secret: 'YOUR_SECRET', // Mets ton secret ici
+  secret: 'YOUR_SECRET', // ← Mets ton secret ici
   cluster: 'eu',
   useTLS: true
 });
@@ -41,5 +42,5 @@ app.use(express.static('public'));
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`MangoChat serveur lancé sur http://localhost:${port}`);
+  console.log(`Serveur MangoChat lancé sur http://localhost:${port}`);
 });
