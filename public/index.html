@@ -2,138 +2,120 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>MangoChat 🍋</title>
+  <title>Chat style WhatsApp</title>
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-    #messages { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; background: #f5f5f5; }
-    .message { margin: 5px 0; padding: 8px 12px; border-radius: 15px; max-width: 70%; }
+    body { font-family: Arial; max-width: 600px; margin: auto; }
+    #messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+    .message { padding: 5px 10px; margin: 5px; border-radius: 15px; max-width: 70%; }
     .from-me { background: #DCF8C6; margin-left: auto; }
     .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
-    #input-area { display: none; margin-top: 10px; }
-    #messageInput { padding: 10px; font-size: 16px; width: 100%; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 5px; }
-    #notif { background: yellow; padding: 10px; margin-top: 10px; display: none; }
+    #notif { margin: 10px 0; padding: 10px; background: #fffae6; display: none; border: 1px solid #ffd700; }
   </style>
 </head>
 <body>
 
 <h2>Ton code : <span id="myCode"></span></h2>
-<input id="partnerCode" placeholder="Code de l'autre..." style="width: 100%; padding: 8px;" />
-<button onclick="connect()">Demander à discuter</button>
-
-<div id="notif">
-  <span id="notifText"></span><br />
-  <button onclick="acceptInvite()">Oui</button>
-  <button onclick="declineInvite()">Non</button>
-</div>
+<input id="partnerCode" placeholder="Code de l'autre" style="width:100%; padding:8px;" />
+<div id="notif"></div>
 
 <div id="messages"></div>
-
-<div id="input-area">
-  <input id="messageInput" placeholder="Écris un message..." autocomplete="off" />
+<div id="input-area" style="display:none; margin-top:10px;">
+  <input id="messageInput" placeholder="Message..." style="width:80%; padding:10px;" />
   <button onclick="send()">Envoyer</button>
 </div>
 
 <script>
+  const PUSHER_KEY = "21da0af69d3d1b97e425";
+  const PUSHER_CLUSTER = "eu";
+
   const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
   localStorage.setItem("code", myCode);
   document.getElementById("myCode").textContent = myCode;
 
   let partner = "";
   let isAccepted = false;
-  let chatChannel = null;
+  let currentChannel = null;
 
-  const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
+  const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+
   const inviteChannel = pusher.subscribe("invite_" + myCode);
 
   inviteChannel.bind("chat-invite", data => {
-    showNotification(`${data.from} veut discuter avec toi. Accepter ?`);
+    if (isAccepted) return;
     window.inviteFrom = data.from;
+    showNotification(`${data.from} veut discuter avec toi. <button onclick="accept()">Accepter</button>`);
   });
 
   inviteChannel.bind("chat-accepted", data => {
-    if (data.from !== partner) return;
+    partner = data.from;
     isAccepted = true;
     subscribeToChat(partner);
+    showNotification("✅ Conversation acceptée !");
     document.getElementById("input-area").style.display = "block";
-    showNotification("L'autre a accepté l'invitation !", false);
   });
 
-  function showNotification(text, show = true) {
-    document.getElementById("notif").style.display = show ? "block" : "none";
-    document.getElementById("notifText").textContent = text || "";
-  }
-
-  function acceptInvite() {
-    const from = window.inviteFrom;
-    isAccepted = true;
-    partner = from;
-    document.getElementById("partnerCode").value = partner;
-    subscribeToChat(partner);
-    document.getElementById("input-area").style.display = "block";
-    showNotification("", false);
-
-    fetch("/accept", {
-      method: "POST",
+  document.getElementById("partnerCode").addEventListener("change", function () {
+    const code = this.value.trim();
+    if (!code || code === myCode) return;
+    partner = code;
+    fetch('/invite', {
+      method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
+    }).then(() => {
+      showNotification("Invitation envoyée, en attente...");
     });
-  }
+  });
 
-  function declineInvite() {
-    showNotification("", false);
-  }
-
-  function connect() {
-    const to = document.getElementById("partnerCode").value.trim();
-    if (!to || to === myCode) return;
-    partner = to;
-
-    fetch("/invite", {
-      method: "POST",
+  function accept() {
+    isAccepted = true;
+    partner = window.inviteFrom;
+    fetch('/accept', {
+      method: 'POST',
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myCode, to })
+      body: JSON.stringify({ from: myCode, to: partner })
+    }).then(() => {
+      subscribeToChat(partner);
+      showNotification("✅ Conversation acceptée !");
+      document.getElementById("input-area").style.display = "block";
     });
-  }
-
-  function getChatChannel(a, b) {
-    return 'chat_' + [a, b].sort().join('_');
   }
 
   function subscribeToChat(other) {
-    const chName = getChatChannel(myCode, other);
-    if (chatChannel) pusher.unsubscribe(chatChannel);
-    chatChannel = pusher.subscribe(chName);
-
-    chatChannel.bind("new-message", data => {
-      const fromMe = data.from === myCode;
-      addMessage(data.text, fromMe);
+    if (currentChannel) pusher.unsubscribe(currentChannel.name);
+    const chName = "chat_" + [myCode, other].sort().join("_");
+    currentChannel = pusher.subscribe(chName);
+    currentChannel.bind("new-message", data => {
+      const me = data.from === myCode;
+      addMessage(data.text, me);
     });
-  }
-
-  function addMessage(text, fromMe) {
-    const messagesDiv = document.getElementById("messages");
-    const msgDiv = document.createElement("div");
-    msgDiv.className = "message " + (fromMe ? "from-me" : "from-them");
-    msgDiv.textContent = (fromMe ? "Toi: " : "Lui: ") + text;
-    messagesDiv.appendChild(msgDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    document.getElementById("messages").innerHTML = "";
   }
 
   function send() {
-    const textInput = document.getElementById("messageInput");
-    const text = textInput.value.trim();
+    const text = document.getElementById("messageInput").value.trim();
     if (!text || !partner || !isAccepted) return;
-
-    fetch("/message", {
-      method: "POST",
+    fetch('/message', {
+      method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner, text })
     });
+    document.getElementById("messageInput").value = "";
+  }
 
-    textInput.value = "";
-    textInput.focus();
+  function addMessage(text, me) {
+    const div = document.createElement("div");
+    div.className = "message " + (me ? "from-me" : "from-them");
+    div.textContent = text;
+    document.getElementById("messages").appendChild(div);
+    document.getElementById("messages").scrollTop = 9999;
+  }
+
+  function showNotification(msg) {
+    const notif = document.getElementById("notif");
+    notif.innerHTML = msg;
+    notif.style.display = "block";
   }
 </script>
 
