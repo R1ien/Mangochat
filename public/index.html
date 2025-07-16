@@ -2,154 +2,116 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Chat avec invitation Kian</title>
+  <title>MangoChat 🍋</title>
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
-    #messages { border: 1px solid #ccc; height: 350px; overflow-y: scroll; padding: 10px; }
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+    #messages { border: 1px solid #ccc; height: 400px; overflow-y: scroll; padding: 10px; background: #f5f5f5; }
     .message { margin: 5px 0; padding: 8px 12px; border-radius: 15px; max-width: 70%; }
     .from-me { background: #DCF8C6; margin-left: auto; }
     .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
-    #input-area { display: flex; margin-top: 10px; }
-    #messageInput { flex: 1; padding: 10px; font-size: 16px; }
-    button { padding: 10px 20px; font-size: 16px; margin-left: 5px; }
-    #notif { background: #fffae6; border: 1px solid #ffd700; padding: 10px; margin-bottom: 10px; display: none; }
+    #input-area { display: none; margin-top: 10px; }
+    #messageInput { flex: 1; padding: 10px; font-size: 16px; width: 100%; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 5px; }
+    #notif { background: yellow; padding: 10px; margin-top: 10px; display: none; }
   </style>
 </head>
 <body>
 
 <h2>Ton code : <span id="myCode"></span></h2>
-<input id="partnerCode" placeholder="Code de l'autre..." style="width: 100%; margin-bottom: 10px; padding: 8px;" />
+<input id="partnerCode" placeholder="Code de l'autre..." style="width: 100%; padding: 8px;" />
+<button onclick="connect()">Demander à discuter</button>
 
-<div id="notif"></div>
+<div id="notif">
+  <span id="notifText"></span><br />
+  <button onclick="acceptInvite()">Oui</button>
+  <button onclick="declineInvite()">Non</button>
+</div>
 
 <div id="messages"></div>
 
-<div id="input-area" style="display:none;">
+<div id="input-area">
   <input id="messageInput" placeholder="Écris un message..." autocomplete="off" />
   <button onclick="send()">Envoyer</button>
 </div>
 
 <script>
-  // Clés Pusher
-  const PUSHER_KEY = "21da0af69d3d1b97e425";
-  const PUSHER_CLUSTER = "eu";
-
-  // Ton code généré ou stocké
   const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
   localStorage.setItem("code", myCode);
   document.getElementById("myCode").textContent = myCode;
 
-  // Variables globales
   let partner = "";
-  let channel = null;
   let isAccepted = false;
+  let chatChannel = null;
 
-  // Init Pusher en mode non abonné au chat encore
-  const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+  const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
 
-  // Canal d'invitations perso
   const inviteChannel = pusher.subscribe("invite_" + myCode);
 
-inviteChannel.bind("chat-accepted", data => {
-  if (data.from !== partner) return;
-  isAccepted = true;
-  subscribeToChat(partner);
-  document.getElementById("input-area").style.display = "flex";
-  showNotification("L'autre a accepté l'invitation !", false);
-});
-
-
-  // Fonction qui construit le nom du canal chat
-  function getChatChannel(a, b) {
-    return "chat_" + [a, b].sort().join("_");
-  }
-
-  // Affiche notification d'invitation avec boutons Oui/Non
-  function showNotification(msg, showButtons) {
-    const notif = document.getElementById("notif");
-    notif.innerHTML = msg;
-    if (showButtons) {
-      notif.innerHTML += `
-        <button onclick="acceptInvite()">Oui</button>
-        <button onclick="rejectInvite()">Non</button>
-      `;
-    }
-    notif.style.display = "block";
-  }
-
-  // Accepter l'invitation
-function acceptInvite() {
-  const from = window.inviteFrom;
-  isAccepted = true;
-  subscribeToChat(from);
-  document.getElementById("notif").style.display = "none";
-  partner = from;
-  document.getElementById("partnerCode").value = partner;
-  document.getElementById("input-area").style.display = "flex";
-
-  // 🔴 INFORME L'AUTRE QU'IL EST ACCEPTÉ
-  fetch("/accept", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: myCode, to: partner }),
+  inviteChannel.bind("chat-invite", data => {
+    showNotification(`${data.from} veut discuter avec toi. Accepter ?`);
+    window.inviteFrom = data.from;
   });
-}
 
+  inviteChannel.bind("chat-accepted", data => {
+    if (data.from !== partner) return;
+    isAccepted = true;
+    subscribeToChat(partner);
+    document.getElementById("input-area").style.display = "block";
+    showNotification("L'autre a accepté l'invitation !", false);
+  });
 
-  // Refuser l'invitation
-  function rejectInvite() {
-    showNotification("Invitation refusée.", false);
-    setTimeout(() => { document.getElementById("notif").style.display = "none"; }, 2000);
-    window.inviteFrom = null;
+  function showNotification(text, show = true) {
+    document.getElementById("notif").style.display = show ? "block" : "none";
+    document.getElementById("notifText").textContent = text || "";
   }
 
-  // Abonnement au canal chat et gestion messages
-  function subscribeToChat(other) {
-    if (channel) {
-      pusher.unsubscribe(channel.name);
-      document.getElementById("messages").innerHTML = "";
-    }
-    const chName = getChatChannel(myCode, other);
-    channel = pusher.subscribe(chName);
+  function acceptInvite() {
+    const from = window.inviteFrom;
+    isAccepted = true;
+    partner = from;
+    document.getElementById("partnerCode").value = partner;
+    subscribeToChat(partner);
+    document.getElementById("input-area").style.display = "block";
+    showNotification("", false);
 
-    channel.bind("new-message", data => {
-      const fromMe = data.from === myCode;
-      addMessage((fromMe ? "Toi: " : "Lui: ") + data.text, fromMe);
+    fetch("/accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner })
     });
-
-    document.getElementById("messages").innerHTML = "";
   }
 
-  // Envoyer une invitation quand on met un code
-  document.getElementById("partnerCode").addEventListener("change", function () {
-    const code = this.value.trim();
-    if (!code || code === myCode) {
-      alert("Met un code valide (différent du tien) !");
-      this.value = "";
-      return;
-    }
-    partner = code;
-    isAccepted = false;
-    // Envoie l'invitation à l'autre
-    const inviteChannelName = "invite_" + partner;
+  function declineInvite() {
+    showNotification("", false);
+  }
 
-    // Pour envoyer l'invitation, on doit appeler backend (via fetch)
-    // On va créer un endpoint /invite sur backend pour ça
+  function connect() {
+    const to = document.getElementById("partnerCode").value.trim();
+    if (!to || to === myCode) return;
+    partner = to;
+
     fetch("/invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myCode, to: partner }),
-    }).then(res => {
-      if (res.ok) {
-        showNotification("Invitation envoyée, en attente d'acceptation...", false);
-      } else {
-        alert("Erreur lors de l'envoi de l'invitation");
-      }
+      body: JSON.stringify({ from: myCode, to })
     });
-  });
+  }
 
-  // Affiche un message dans la zone chat
+  function getChatChannel(a, b) {
+    return 'chat_' + [a, b].sort().join('_');
+  }
+
+  function subscribeToChat(other) {
+    const chName = getChatChannel(myCode, other);
+    chatChannel = pusher.subscribe(chName);
+
+    chatChannel.bind("new-message", data => {
+      const fromMe = data.from === myCode;
+      addMessage((fromMe ? "Toi: " : "Lui: ") + data.text, fromMe);
+    });
+  }
+
   function addMessage(text, fromMe) {
     const messagesDiv = document.getElementById("messages");
     const msgDiv = document.createElement("div");
@@ -159,27 +121,16 @@ function acceptInvite() {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  // Envoi message via backend
-function send() {
-  const textInput = document.getElementById("messageInput");
-  const text = textInput.value.trim();
-  if (!text || !partner || !isAccepted) return;
+  function send() {
+    const textInput = document.getElementById("messageInput");
+    const text = textInput.value.trim();
+    if (!text || !partner || !isAccepted) return;
 
-  fetch("/message", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: myCode, to: partner, text }),
-  });
-
-  textInput.value = "";
-  textInput.focus();
-}
-
+    fetch("/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner, text })
+    });
 
     textInput.value = "";
-    textInput.focus();
-  }
-</script>
-
-</body>
-</html>
+    textInput.focu
