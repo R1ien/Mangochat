@@ -150,18 +150,21 @@
   }
 
   // Envoi message via backend
-  function send() {
-    const textInput = document.getElementById("messageInput");
-    const text = textInput.value.trim();
-    if (!text || !partner || !isAccepted) return;
+function send() {
+  const textInput = document.getElementById("messageInput");
+  const text = textInput.value.trim();
+  if (!text || !partner || !isAccepted) return;
 
-    addMessage("Toi: " + text, true);
+  fetch("/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myCode, to: partner, text }),
+  });
 
-    fetch("/message", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myCode, to: partner, text }),
-    });
+  textInput.value = "";
+  textInput.focus();
+}
+
 
     textInput.value = "";
     textInput.focus();
