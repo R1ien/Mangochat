@@ -11,7 +11,7 @@
     .from-me { background: #DCF8C6; margin-left: auto; }
     .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
     #input-area { display: none; margin-top: 10px; }
-    #messageInput { flex: 1; padding: 10px; font-size: 16px; width: 100%; }
+    #messageInput { padding: 10px; font-size: 16px; width: 100%; }
     button { padding: 10px 20px; font-size: 16px; margin-top: 5px; }
     #notif { background: yellow; padding: 10px; margin-top: 10px; display: none; }
   </style>
@@ -45,7 +45,6 @@
   let chatChannel = null;
 
   const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
-
   const inviteChannel = pusher.subscribe("invite_" + myCode);
 
   inviteChannel.bind("chat-invite", data => {
@@ -104,11 +103,12 @@
 
   function subscribeToChat(other) {
     const chName = getChatChannel(myCode, other);
+    if (chatChannel) pusher.unsubscribe(chatChannel);
     chatChannel = pusher.subscribe(chName);
 
     chatChannel.bind("new-message", data => {
       const fromMe = data.from === myCode;
-      addMessage((fromMe ? "Toi: " : "Lui: ") + data.text, fromMe);
+      addMessage(data.text, fromMe);
     });
   }
 
@@ -116,7 +116,7 @@
     const messagesDiv = document.getElementById("messages");
     const msgDiv = document.createElement("div");
     msgDiv.className = "message " + (fromMe ? "from-me" : "from-them");
-    msgDiv.textContent = text;
+    msgDiv.textContent = (fromMe ? "Toi: " : "Lui: ") + text;
     messagesDiv.appendChild(msgDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
@@ -133,4 +133,9 @@
     });
 
     textInput.value = "";
-    textInput.focu
+    textInput.focus();
+  }
+</script>
+
+</body>
+</html>
