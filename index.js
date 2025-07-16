@@ -31,8 +31,10 @@ app.post('/invite', (req, res) => {
 
 app.post('/accept', (req, res) => {
   const { from, to } = req.body;
-  const channel = "invite_" + from;
-  pusher.trigger(channel, "chat-accepted", { from: to });
+  const fromChannel = "invite_" + from;
+  const toChannel = "invite_" + to;
+  pusher.trigger(fromChannel, "chat-accepted", { from: to });
+  pusher.trigger(toChannel, "chat-accepted", { from });
   res.sendStatus(200);
 });
 
