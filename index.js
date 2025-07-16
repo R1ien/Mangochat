@@ -7,11 +7,11 @@ app.use(cors());
 app.use(express.json());
 
 const pusher = new Pusher({
-  appId: process.env.PUSHER_APP_ID,
-  key: process.env.PUSHER_KEY,
-  secret: process.env.PUSHER_SECRET,
-  cluster: process.env.PUSHER_CLUSTER,
-  useTLS: true,
+  appId: 'YOUR_APP_ID', // Mets ton appId ici
+  key: '21da0af69d3d1b97e425',
+  secret: 'YOUR_SECRET', // Mets ton secret ici
+  cluster: 'eu',
+  useTLS: true
 });
 
 function getChatChannel(a, b) {
@@ -27,23 +27,19 @@ app.post('/message', (req, res) => {
 
 app.post('/invite', (req, res) => {
   const { from, to } = req.body;
-  if (!from || !to) return res.status(400).send("Missing from or to");
-
-  const channelName = "invite_" + to;
-  pusher.trigger(channelName, "chat-invite", { from });
+  pusher.trigger("invite_" + to, "chat-invite", { from });
   res.sendStatus(200);
 });
 
 app.post('/accept', (req, res) => {
   const { from, to } = req.body;
-  if (!from || !to) return res.status(400).send("Missing from or to");
-
-  const channelName = "invite_" + to;
-  pusher.trigger(channelName, "chat-accepted", { from });
+  pusher.trigger("invite_" + to, "chat-accepted", { from });
   res.sendStatus(200);
 });
 
 app.use(express.static('public'));
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server started on port ${port}`));
+app.listen(port, () => {
+  console.log(`MangoChat serveur lancé sur http://localhost:${port}`);
+});
