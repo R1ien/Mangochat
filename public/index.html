@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Kian</title>
+  <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
+</head>
+<body>
+  <h2>Ton code : <span id="myCode"></span></h2>
+  <input id="partnerCode" placeholder="Code de l'autre...">
+  <div id="messages" style="border:1px solid #ccc;height:300px;overflow-y:scroll"></div>
+  <input id="messageInput" placeholder="Ton message..."><button onclick="send()">Envoyer</button>
+
+  <script>
+    const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random()*900000).toString();
+    localStorage.setItem("code", myCode);
+    document.getElementById("myCode").textContent = myCode;
+
+    let partner="", channel=null;
+    const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
+
+    document.getElementById("partnerCode").addEventListener("change", function() {
+      partner = this.value.trim();
+      const chName = "chat_" + [myCode, partner].sort().join("_");
+      if (channel) pusher.unsubscribe(channel.name);
+      channel = pusher.subscribe(chName);
+      channel.bind("new-message", data => {
+        const div = document.createElement("div");
+        div.textContent = (data.from===myCode ? "Toi: " : "Lui: ") + data.text;
+        document.getElementById("messages").appendChild(div);
+      });
+      document.getElementById("messages").innerHTML = `<em>Tu parles avec ${partner}</em><hr>`;
+    });
+
+    function send() {
+      const text = document.getElementById("messageInput").value.trim();
+      if (!text || !partner) return;
+      fetch("https://chatkian.username.repl.co/message", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ from: myCode, to: partner, text })
+      });
+      document.getElementById("messageInput").value="";
+    }
+  </script>
+</body>
+</html>
