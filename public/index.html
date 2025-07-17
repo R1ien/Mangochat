@@ -207,17 +207,24 @@
     document.getElementById("messages").innerHTML = "";
   }
 
-  function send() {
-    const text = document.getElementById("messageInput").value.trim();
-    if (!text || !partner || !isAccepted) return;
-    fetch('/message', {
-      method: 'POST',
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myCode, to: partner, text })
-    });
-    addMessage(text, true);
-    document.getElementById("messageInput").value = "";
-  }
+ function send() {
+  const input = document.getElementById("message-input");
+  const text = input.value.trim();
+  if (!text || !partner) return;
+
+  fetch("/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: myCode,
+      to: partner,
+      text,
+      id: Date.now().toString()
+    })
+  });
+
+  input.value = "";
+}
 
   function addMessage(text, me) {
     const div = document.createElement("div");
