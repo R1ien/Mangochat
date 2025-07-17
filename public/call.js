@@ -1,3 +1,6 @@
+const myCode = localStorage.getItem("myCode");
+const partner = localStorage.getItem("partnerCode");
+
 let localStream;
 let peerConnection;
 const config = {
@@ -46,7 +49,11 @@ function sendSignal(to, data) {
   fetch("/signal", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ to, from: localStorage.getItem("myCode"), data })
+    body: JSON.stringify({
+      from: myCode,
+      to,
+      data
+    })
   });
 }
 
