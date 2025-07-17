@@ -154,16 +154,15 @@
   inviteChannel.bind("chat-invite", data => {
     if (isAccepted) return;
     window.inviteFrom = data.from;
-    showNotification(`${data.from} veut discuter avec toi. <button onclick=\"accept()\">Accepter</button>`);
+    showNotification(`${data.from} veut discuter avec toi. <button onclick="accept()">Accepter</button>`);
   });
 
   inviteChannel.bind("chat-accepted", data => {
     partner = data.from;
     isAccepted = true;
     subscribeToChat(partner);
+    showUI();
     showNotification("✅ Conversation acceptée !");
-    document.getElementById("input-area").style.display = "flex";
-    document.getElementById("messages").style.display = "block";
   });
 
   document.getElementById("partnerCode").addEventListener("change", function () {
@@ -188,9 +187,8 @@
       body: JSON.stringify({ from: myCode, to: partner })
     }).then(() => {
       subscribeToChat(partner);
+      showUI();
       showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "flex";
-      document.getElementById("messages").style.display = "block";
     });
   }
 
@@ -198,19 +196,19 @@
     if (currentChannel) pusher.unsubscribe(currentChannel.name);
     const chName = "chat_" + [myCode, other].sort().join("_");
     currentChannel = pusher.subscribe(chName);
+
     currentChannel.bind("new-message", data => {
+      if (!isAccepted) return;
       if (data.from === myCode) return;
       addMessage(data.text, false);
     });
+
     currentChannel.bind("user-left", data => {
       showNotification(data.message);
-      setTimeout(() => {
-        document.getElementById("input-area").style.display = "none";
-        document.getElementById("messages").style.display = "none";
-        partner = "";
-        isAccepted = false;
-      }, 5000);
+      isAccepted = false;
+      setTimeout(hideUI, 5000);
     });
+
     document.getElementById("messages").innerHTML = "";
   }
 
@@ -240,6 +238,16 @@
     notif.style.display = "block";
   }
 
+  function hideUI() {
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("messages").style.display = "none";
+  }
+
+  function showUI() {
+    document.getElementById("input-area").style.display = "flex";
+    document.getElementById("messages").style.display = "block";
+  }
+
   function quit() {
     if (!partner) return;
     fetch('/quit', {
@@ -250,12 +258,8 @@
     isAccepted = false;
     partner = "";
     if (currentChannel) pusher.unsubscribe(currentChannel.name);
-    document.getElementById("input-area").style.display = "none";
-    document.getElementById("messages").style.display = "none";
     showNotification("❌ Conversation quittée.");
-    setTimeout(() => {
-      document.getElementById("notif").style.display = "none";
-    }, 5000);
+    setTimeout(hideUI, 5000);
   }
 </script>
 
