@@ -157,6 +157,19 @@
       n.style.display = "block";
       setTimeout(() => n.style.display = "none", 3000);
     }
+
+    // 🔁 Quitte automatiquement la conversation si on recharge ou ferme la page
+window.addEventListener('beforeunload', () => {
+  const code = localStorage.getItem('partnerCode');
+  if (code) {
+    channel.trigger('client-leave-conversation', {
+      sender: localStorage.getItem('myCode'),
+      receiver: code
+    });
+    localStorage.removeItem('partnerCode');
+    localStorage.removeItem('messageHistory');
+  }
+});
   </script>
 </body>
 </html>
