@@ -1,3 +1,4 @@
+
 const express = require('express');
 const app = express();
 const Pusher = require('pusher');
@@ -47,16 +48,6 @@ app.post('/quit', (req, res) => {
   res.sendStatus(200);
 });
 
-app.post('/ping', (req, res) => {
-  const { from, to } = req.body;
-  if (from && to) {
-    // Tu peux faire un vrai check avec une DB ou autre, ici on renvoie juste OK pour l'exemple
-    return res.sendStatus(200);
-  }
-  res.sendStatus(400);
-});
-
-
 function getChatChannel(a, b) {
   return "chat_" + [a, b].sort().join("_");
 }
@@ -65,4 +56,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Serveur démarré sur le port", PORT);
 });
-
