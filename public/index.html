@@ -226,6 +226,7 @@
     <div id="input-area">
       <input id="messageInput" placeholder="Écris un message..." autocomplete="off" />
       <button onclick="send()">Envoyer</button>
+      <button id="quitBtn" style="display:none;">❌ Quitter la conversation</button>
     </div>
   </main>
 
@@ -300,6 +301,31 @@
         addMessage(data.text, false);
       });
       document.getElementById("messages").innerHTML = "";
+
+      currentChannel.bind("new-message", data => {
+  if (data.from === myCode) return;
+
+  if (data.text === "__quit__") {
+    showNotification("❌ L'utilisateur a quitté la conversation.");
+
+    // Supprimer le message après 5 sec
+    setTimeout(() => {
+      document.getElementById("notif").style.display = "none";
+    }, 5000);
+
+    partner = null;
+    isAccepted = false;
+    localStorage.removeItem('partnerCode');
+    localStorage.removeItem('messageHistory');
+    document.getElementById("messages").innerHTML = "";
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("quitBtn").style.display = "none";
+    return;
+  }
+
+  addMessage(data.text, false);
+});
+
     }
 
     function send() {
@@ -344,6 +370,31 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ... tout le code existant reste inchangé en dessous ...
+
+    document.getElementById("quitBtn").addEventListener("click", () => {
+  if (!partner || !isAccepted) return;
+
+  // Envoyer un message au partenaire
+  fetch('/message', {
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myCode, to: partner, text: "__quit__" })
+  });
+
+  // Afficher une notification locale
+  showNotification("❌ Tu as quitté la conversation.");
+
+  // Nettoyage local
+  localStorage.removeItem('partnerCode');
+  localStorage.removeItem('messageHistory');
+  document.getElementById("messages").innerHTML = "";
+  document.getElementById("input-area").style.display = "none";
+  document.getElementById("quitBtn").style.display = "none";
+
+  // Réinitialise tout
+  partner = null;
+  isAccepted = false;
+});
 
   </script>
 </body>
