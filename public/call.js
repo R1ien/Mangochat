@@ -49,3 +49,85 @@ function sendSignal(to, data) {
     body: JSON.stringify({ to, from: localStorage.getItem("myCode"), data })
   });
 }
+
+const callBtn = document.getElementById("callBtn");
+const callInterface = document.getElementById("callInterface");
+const muteBtn = document.getElementById("muteBtn");
+const hangupBtn = document.getElementById("hangupBtn");
+
+let isMuted = false;
+
+callBtn.onclick = async () => {
+  if (!partner) {
+    alert("Aucune personne avec qui appeler.");
+    return;
+  }
+
+  await initMedia();
+  createPeerConnection(partner);
+
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+
+  sendSignal(partner, { type: "offer", sdp: offer });
+
+  showCallUI();
+};
+
+muteBtn.onclick = () => {
+  if (!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(track => (track.enabled = !isMuted));
+  muteBtn.textContent = isMuted ? "🔈 Unmute" : "🔇 Mute";
+};
+
+hangupBtn.onclick = () => {
+  if (peerConnection) peerConnection.close();
+  peerConnection = null;
+  localStream.getTracks().forEach(t => t.stop());
+  localStream = null;
+  hideCallUI();
+
+  sendSignal(partner, { type: "hangup" });
+};
+
+function showCallUI() {
+  callInterface.style.display = "block";
+}
+
+function hideCallUI() {
+  callInterface.style.display = "none";
+}
+
+// Abonnement au canal de signal
+const signalChannel = pusher.subscribe("signal_" + myCode);
+
+signalChannel.bind("signal", async data => {
+  const msg = data.data;
+
+  if (msg.type === "offer") {
+    await initMedia();
+    createPeerConnection(data.from);
+
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    sendSignal(data.from, { type: "answer", sdp: answer });
+    showCallUI();
+  }
+
+  if (msg.type === "answer") {
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+  }
+
+  if (msg.type === "ice") {
+    peerConnection.addIceCandidate(new RTCIceCandidate(msg.candidate));
+  }
+
+  if (msg.type === "hangup") {
+    if (peerConnection) peerConnection.close();
+    peerConnection = null;
+    hideCallUI();
+  }
+});
