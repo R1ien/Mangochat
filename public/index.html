@@ -174,33 +174,48 @@
   });
 
   function subscribeToChat(other) {
-    const chName = "chat_" + [myCode, other].sort().join("_");
-    if (currentChannel) pusher.unsubscribe(currentChannel.name);
+  const chName = "chat_" + [myCode, other].sort().join("_");
+  if (currentChannel && currentChannel.name === chName) return;
 
-    currentChannel = pusher.subscribe(chName);
+  if (currentChannel) pusher.unsubscribe(currentChannel.name);
+  currentChannel = pusher.subscribe(chName);
 
-    currentChannel.bind("new-message", data => {
-      if (data.from !== myCode) {
-        addMessage(data.text, false);
-      }
-    });
+  lastMessageId = null; // reset pour éviter les messages doublés à chaque nouvelle discussion
 
-    currentChannel.bind("chat-started", data => {
-      showNotification(data.message);
-      document.getElementById("input-area").style.display = "flex";
-      document.getElementById("messages").style.display = "block";
-    });
+  currentChannel.bind("new-message", data => {
+    if (data.from === myCode) return;
+    if (data.id && data.id === lastMessageId) return;
+    lastMessageId = data.id;
+    addMessage(data.text, false);
+  });
 
-    currentChannel.bind("user-left", data => {
-      showNotification(data.message);
-      setTimeout(() => {
-        document.getElementById("input-area").style.display = "none";
-        document.getElementById("messages").style.display = "none";
-        document.getElementById("messages").innerHTML = "";
-        partner = null;
-        subscribed = false;
-      }, 5000);
-    });
+  currentChannel.bind("chat-started", data => {
+    showNotification(data.message);
+    document.getElementById("input-area").style.display = "flex";
+    document.getElementById("messages").style.display = "block";
+  });
+
+  currentChannel.bind("user-left", data => {
+    showNotification(data.message);
+    setTimeout(() => {
+      document.getElementById("input-area").style.display = "none";
+      document.getElementById("messages").style.display = "none";
+      document.getElementById("messages").innerHTML = "";
+      partner = null;
+    }, 5000);
+  });
+
+  // Affichage uniquement si conversation est active
+  if (isAccepted || other) {
+    document.getElementById("messages").style.display = "block";
+    document.getElementById("input-area").style.display = "flex";
+    document.getElementById("messages").innerHTML = "";
+  } else {
+    // sécurité : cacher les éléments si aucune discussion valide
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("messages").style.display = "none";
+  }
+}
 
     document.getElementById("messages").innerHTML = "";
     document.getElementById("input-area").style.display = "flex";
