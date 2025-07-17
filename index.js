@@ -10,7 +10,7 @@ app.use(express.static('public'));
 const pusher = new Pusher({
   appId: "2023592",
   key: "21da0af69d3d1b97e425",
-  secret: "3de0052ed5c986f11bed",
+  secret: "TON_SECRET",
   cluster: "eu",
   useTLS: true
 });
