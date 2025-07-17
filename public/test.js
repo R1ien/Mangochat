@@ -1,4 +1,5 @@
 const callBtn = document.getElementById("callBtn");
+const API_URL = "https://mangochat.onrender.com";
 
 callBtn.onclick = async () => {
   console.log("Bouton appeler cliqué");
