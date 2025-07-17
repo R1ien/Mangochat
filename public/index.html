@@ -49,12 +49,18 @@
   });
 
   inviteChannel.bind("chat-accepted", data => {
-    partner = data.from;
-    isAccepted = true;
-    subscribeToChat(partner);
-    showNotification("✅ Conversation acceptée !");
-    document.getElementById("input-area").style.display = "block";
-    invitationPending = false;
+    if (!isAccepted) {
+      partner = data.from;
+      isAccepted = true;
+      subscribeToChat(partner);
+      showNotification("✅ Conversation acceptée !");
+      document.getElementById("input-area").style.display = "block";
+      invitationPending = false;
+    } else {
+      // Supprimer l'invitation chez l'envoyeur aussi
+      showNotification("✅ Conversation acceptée !");
+      invitationPending = false;
+    }
   });
 
   document.getElementById("partnerCode").addEventListener("change", function () {
@@ -82,6 +88,7 @@
       subscribeToChat(partner);
       showNotification("✅ Conversation acceptée !");
       document.getElementById("input-area").style.display = "block";
+      invitationPending = false;
     });
   }
 
@@ -90,8 +97,8 @@
     const chName = "chat_" + [myCode, other].sort().join("_");
     currentChannel = pusher.subscribe(chName);
     currentChannel.bind("new-message", data => {
-      const me = data.from === myCode;
-      addMessage(data.text, me);
+      if (data.from === myCode) return; // ignore les messages venant de soi
+      addMessage(data.text, false);
     });
     document.getElementById("messages").innerHTML = "";
   }
@@ -104,6 +111,7 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner, text })
     });
+    addMessage(text, true); // Affiche seulement une fois côté sender
     document.getElementById("messageInput").value = "";
   }
 
