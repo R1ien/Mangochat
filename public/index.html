@@ -137,6 +137,29 @@
 
   let partner = localStorage.getItem("partner") || "";
   let isAccepted = localStorage.getItem("accepted") === "true";
+  
+// Vérifie si la conversation est vraiment active
+if (isAccepted && partner) {
+  // Ne rejoint que si l'utilisateur est encore sur le site
+  fetch('/ping', {
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myCode, to: partner })
+  }).then(res => {
+    if (res.ok) {
+      subscribeToChat(partner);
+      document.getElementById("input-area").style.display = "flex";
+    } else {
+      // Reset si l'autre est plus là
+      localStorage.removeItem("partner");
+      localStorage.removeItem("accepted");
+      localStorage.removeItem("messages");
+      partner = "";
+      isAccepted = false;
+    }
+  });
+}
+
   let currentChannel = null;
   let invitationPending = false;
   let messageHistory = JSON.parse(localStorage.getItem("messages") || "[]");
