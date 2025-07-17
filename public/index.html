@@ -63,128 +63,149 @@
 
   <script>
     const myName = localStorage.getItem("myName") || prompt("Entre ton pseudo :").trim();
-    localStorage.setItem("myName", myName);
-    document.getElementById("nameDisplay").textContent = "👤 Ton pseudo : " + myName;
+localStorage.setItem("myName", myName);
+document.getElementById("nameDisplay").textContent = "👤 Ton pseudo : " + myName;
 
-    const pusher = new Pusher("21da0af69d3d1b97e425", {
-      cluster: "eu"
-    });
+const pusher = new Pusher("21da0af69d3d1b97e425", {
+  cluster: "eu"
+});
 
-    let partner = null;
-    let currentChannel = null;
+let partner = null;
+let currentChannel = null;
+let isSubscribed = false;  // <-- Pour éviter plusieurs abonnements
 
-    const notif = msg => {
-      const n = document.getElementById("notif");
-      n.textContent = msg;
-      n.style.display = "block";
-      setTimeout(() => n.style.display = "none", 5000);
-    };
+const notif = msg => {
+  const n = document.getElementById("notif");
+  n.textContent = msg;
+  n.style.display = "block";
+  setTimeout(() => n.style.display = "none", 5000);
+};
 
-    const getChannelName = (a, b) => {
-      return "chat_" + [a, b].sort().join("_");
-    };
+const getChannelName = (a, b) => {
+  return "chat_" + [a, b].sort().join("_");
+};
 
-    document.getElementById("inviteBtn").onclick = () => {
-      const to = document.getElementById("inviteInput").value.trim();
-      if (!to || to === myName) return alert("Pseudo invalide");
+document.getElementById("inviteBtn").onclick = () => {
+  const to = document.getElementById("inviteInput").value.trim();
+  if (!to || to === myName) return alert("Pseudo invalide");
 
-      fetch("/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myName, to })
-      });
+  fetch("/invite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myName, to })
+  });
 
-      partner = to;
-      notif("📨 Invitation envoyée à " + to);
-    };
+  partner = to;
+  notif("📨 Invitation envoyée à " + to);
+};
 
-    const subscribeToChat = () => {
-      const channelName = getChannelName(myName, partner);
-      currentChannel = pusher.subscribe(channelName);
+const subscribeToChat = () => {
+  if (isSubscribed && currentChannel) {
+    // On est déjà abonné, on ne fait rien pour éviter doublons
+    return;
+  }
+  if (currentChannel) {
+    // Si on a un ancien channel, on le désabonne proprement
+    pusher.unsubscribe(currentChannel.name);
+  }
 
-      currentChannel.bind("new-message", data => {
-        if (data.text === "__quit__") {
-          notif("🚪 L'autre utilisateur a quitté la conversation.");
-          cleanup();
-          return;
-        }
-        addMessage(data.from === myName ? "Toi" : data.from, data.text);
-      });
+  const channelName = getChannelName(myName, partner);
+  currentChannel = pusher.subscribe(channelName);
 
-      currentChannel.bind("chat-started", data => {
-        notif(data.message);
-      });
+  currentChannel.bind("new-message", data => {
+    // Ignore les messages envoyés par moi-même reçus via Pusher pour éviter doublons
+    if (data.from === myName) return;
 
-      document.getElementById("input-area").style.display = "block";
-      document.getElementById("quitBtn").style.display = "block";
-    };
-
-    const addMessage = (sender, text) => {
-      const div = document.createElement("div");
-      div.textContent = `${sender} : ${text}`;
-      document.getElementById("messages").appendChild(div);
-      document.getElementById("messages").scrollTop = 99999;
-    };
-
-    document.getElementById("sendBtn").onclick = () => {
-      const text = document.getElementById("msgInput").value.trim();
-      if (!text || !partner) return;
-      fetch("/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myName, to: partner, text })
-      });
-      document.getElementById("msgInput").value = "";
-    };
-
-    // 🔔 Invitation reçue
-    const inviteChannel = pusher.subscribe("invite_" + myName);
-    inviteChannel.bind("chat-invite", data => {
-      if (confirm(`${data.from} veut discuter avec toi. Accepter ?`)) {
-        partner = data.from;
-        fetch("/accept", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: myName, to: partner })
-        });
-        subscribeToChat();
-      }
-    });
-
-    // 🎉 Acceptation reçue
-    inviteChannel.bind("chat-accepted", data => {
-      if (!partner) partner = data.from;
-      subscribeToChat();
-    });
-
-    // ❌ Quitter
-    document.getElementById("quitBtn").onclick = () => {
-      fetch("/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
-      });
-      notif("🚪 Tu as quitté la conversation.");
+    if (data.text === "__quit__") {
+      notif("🚪 L'autre utilisateur a quitté la conversation.");
       cleanup();
-    };
+      return;
+    }
+    addMessage(data.from, data.text);
+  });
 
-    const cleanup = () => {
-      document.getElementById("messages").innerHTML = "";
-      document.getElementById("input-area").style.display = "none";
-      document.getElementById("quitBtn").style.display = "none";
-      partner = null;
-    };
+  currentChannel.bind("chat-started", data => {
+    notif(data.message);
+  });
 
-    // 🔄 Si on recharge la page
-    window.addEventListener("beforeunload", () => {
-      if (partner) {
-        fetch("/message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
-        });
-      }
+  document.getElementById("input-area").style.display = "block";
+  document.getElementById("quitBtn").style.display = "block";
+
+  isSubscribed = true;  // <-- Marque qu’on est abonné
+};
+
+const addMessage = (sender, text) => {
+  const div = document.createElement("div");
+  div.textContent = `${sender} : ${text}`;
+  document.getElementById("messages").appendChild(div);
+  document.getElementById("messages").scrollTop = 99999;
+};
+
+document.getElementById("sendBtn").onclick = () => {
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text || !partner) return;
+  fetch("/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myName, to: partner, text })
+  });
+  addMessage("Toi", text); // Affiche directement ton message, pas besoin d’attendre Pusher
+  document.getElementById("msgInput").value = "";
+};
+
+// 🔔 Invitation reçue
+const inviteChannel = pusher.subscribe("invite_" + myName);
+inviteChannel.bind("chat-invite", data => {
+  if (confirm(`${data.from} veut discuter avec toi. Accepter ?`)) {
+    partner = data.from;
+    fetch("/accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myName, to: partner })
     });
+    subscribeToChat();
+  }
+});
+
+// 🎉 Acceptation reçue
+inviteChannel.bind("chat-accepted", data => {
+  if (!partner) partner = data.from;
+  subscribeToChat();
+});
+
+// ❌ Quitter
+document.getElementById("quitBtn").onclick = () => {
+  fetch("/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
+  });
+  notif("🚪 Tu as quitté la conversation.");
+  cleanup();
+};
+
+const cleanup = () => {
+  document.getElementById("messages").innerHTML = "";
+  document.getElementById("input-area").style.display = "none";
+  document.getElementById("quitBtn").style.display = "none";
+  if (currentChannel) {
+    pusher.unsubscribe(currentChannel.name);
+    currentChannel = null;
+    isSubscribed = false;
+  }
+  partner = null;
+};
+
+// 🔄 Si on recharge la page
+window.addEventListener("beforeunload", () => {
+  if (partner) {
+    fetch("/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
+    });
+  }
+});
   </script>
 </body>
 </html>
