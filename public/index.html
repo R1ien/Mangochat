@@ -6,149 +6,39 @@
   <title>MangoChat 🍋</title>
   <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
   <style>
-  :root {
-    --mango: #f9c851;
-    --mango-dark: #db9e00;
-    --bg: #fffdf5;
-    --text: #333;
-    --bubble-user: #fff;
-    --bubble-other: #ffeaa7;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: var(--bg);
-    color: var(--text);
-    padding: 1rem;
-    margin: 0 auto;
-    max-width: 600px;
-  }
-
-  h2 {
-    font-size: 1.8rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  h2::before {
-    content: "🥭";
-    font-size: 2rem;
-  }
-
-  #nameDisplay {
-    font-weight: bold;
-    margin: 10px 0;
-    color: var(--mango-dark);
-  }
-
-  #notif {
-    margin: 10px 0;
-    color: green;
-    font-weight: bold;
-  }
-
-  #inviteBox, #input-area {
-    display: flex;
-    gap: 10px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-top: 10px;
-  }
-
-  input[type="text"] {
-    flex: 1;
-    padding: 10px;
-    border: 2px solid var(--mango);
-    border-radius: 8px;
-    font-size: 1rem;
-  }
-
-  button {
-    padding: 10px 15px;
-    background-color: var(--mango);
-    border: none;
-    border-radius: 8px;
-    color: white;
-    font-weight: bold;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-
-  button:hover {
-    background-color: var(--mango-dark);
-  }
-
-  #messages {
-    border: 2px solid var(--mango);
-    background: white;
-    height: 300px;
-    overflow-y: auto;
-    padding: 10px;
-    margin-top: 15px;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  #messages div {
-    max-width: 80%;
-    padding: 10px 15px;
-    border-radius: 15px;
-    font-size: 0.95rem;
-    line-height: 1.3;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    word-wrap: break-word;
-  }
-
-  #messages div:empty {
-    display: none;
-  }
-
-  #messages div:nth-child(odd) {
-    align-self: flex-end;
-    background-color: var(--bubble-user);
-    border: 1px solid var(--mango);
-  }
-
-  #messages div:nth-child(even) {
-    align-self: flex-start;
-    background-color: var(--bubble-other);
-    border: 1px solid #e0c08c;
-  }
-
-  #quitBtn {
-    width: 100%;
-    margin-top: 15px;
-    background-color: #ff4d4f;
-    border-radius: 8px;
-  }
-
-  #quitBtn:hover {
-    background-color: #e60000;
-  }
-
-  @media (max-width: 600px) {
-    html {
-      font-size: 17px;
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(120deg, #ffefba, #ffffff);
+      padding: 10px;
+      max-width: 600px;
+      margin: auto;
     }
-
-    input, button {
-      font-size: 1rem;
-    }
-
     #messages {
+      border: 1px solid #ccc;
       height: 250px;
+      overflow-y: auto;
+      padding: 5px;
+      margin-top: 10px;
+      background-color: #fffbe6;
     }
-  }
-</style>
+    #input-area {
+      display: none;
+      margin-top: 10px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 0;
+    }
+    #quitBtn {
+      display: none;
+      margin-top: 10px;
+    }
+    #notif {
+      color: green;
+      margin: 10px 0;
+    }
+  </style>
 </head>
 <body>
   <main>
@@ -212,12 +102,14 @@
       const channelName = getChannelName(myName, partner);
       currentChannel = pusher.subscribe(channelName);
 
-currentChannel.bind("new-message", data => {
-  // Empêche d'afficher deux fois ton propre message
-  if (data.from === myCode) return;
-
-  addMessage(data.text, false);
-});
+      currentChannel.bind("new-message", data => {
+        if (data.text === "__quit__") {
+          notif("🚪 L'autre utilisateur a quitté la conversation.");
+          cleanup();
+          return;
+        }
+        addMessage(data.from === myName ? "Toi" : data.from, data.text);
+      });
 
       currentChannel.bind("chat-started", data => {
         notif(data.message);
