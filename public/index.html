@@ -1,194 +1,190 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🥭 MangoChat</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.1" />
+  <title>MangoChat 🍋</title>
+  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #ffeaa7, #fab1a0);
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-    header {
-      background: #fdcb6e;
-      width: 100%;
+      background: linear-gradient(120deg, #ffefba, #ffffff);
       padding: 10px;
-      text-align: center;
-      font-size: 1.8em;
-      font-weight: bold;
-    }
-    main {
-      padding: 20px;
-      width: 100%;
       max-width: 600px;
-      box-sizing: border-box;
+      margin: auto;
     }
     #messages {
-      border: 2px solid #e17055;
-      background: #fff;
-      height: 300px;
-      overflow-y: scroll;
-      padding: 10px;
-      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      height: 250px;
+      overflow-y: auto;
+      padding: 5px;
+      margin-top: 10px;
+      background-color: #fffbe6;
     }
     #input-area {
-      display: flex;
-      gap: 5px;
-    }
-    #input-area input {
-      flex: 1;
-      padding: 8px;
-      border: 1px solid #ccc;
-    }
-    #input-area button {
-      padding: 8px 12px;
-      background: #00b894;
-      border: none;
-      color: white;
-    }
-    #notif {
+      display: none;
       margin-top: 10px;
-      font-weight: bold;
-      color: #d63031;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px 0;
     }
     #quitBtn {
+      display: none;
       margin-top: 10px;
-      padding: 8px 12px;
-      background: #d63031;
-      color: white;
-      border: none;
     }
-    @media (max-width: 600px) {
-      body {
-        font-size: 1.2em;
-        zoom: 1.2;
-      }
+    #notif {
+      color: green;
+      margin: 10px 0;
     }
   </style>
 </head>
 <body>
-  <header>🥭 MangoChat</header>
   <main>
+    <h2>🍋 MangoChat</h2>
     <div id="notif"></div>
-    <div><strong>Ton pseudo:</strong> <span id="yourName"></span></div>
-    <div id="messages"></div>
-    <div id="input-area" style="display:none">
-      <input id="message" placeholder="Écris ton message...">
-      <button onclick="sendMessage()">Envoyer</button>
-    </div>
-    <button id="quitBtn" style="display:none">❌ Quitter la conversation</button>
-  </main>
-  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
-  <script>
-    let myName = localStorage.getItem('myName');
-    let partner = localStorage.getItem('partnerName');
-    let isAccepted = false;
+    <div id="nameDisplay"></div>
 
-    if (!myName) {
-      myName = prompt("Choisis ton pseudo:");
-      if (myName) localStorage.setItem('myName', myName);
-    }
-    document.getElementById("yourName").innerText = myName;
+    <div id="inviteBox">
+      <input type="text" id="inviteInput" placeholder="Pseudo à inviter" />
+      <button id="inviteBtn">📨 Inviter</button>
+    </div>
+
+    <div id="messages"></div>
+
+    <div id="input-area">
+      <input type="text" id="msgInput" placeholder="Écris ton message" />
+      <button id="sendBtn">📤 Envoyer</button>
+    </div>
+
+    <button id="quitBtn">❌ Quitter la conversation</button>
+  </main>
+
+  <script>
+    const myName = localStorage.getItem("myName") || prompt("Entre ton pseudo :").trim();
+    localStorage.setItem("myName", myName);
+    document.getElementById("nameDisplay").textContent = "👤 Ton pseudo : " + myName;
 
     const pusher = new Pusher("21da0af69d3d1b97e425", {
-      cluster: "eu",
-      encrypted: true
+      cluster: "eu"
     });
 
-    function showNotification(msg) {
-      const notif = document.getElementById("notif");
-      notif.innerText = msg;
-      notif.style.display = "block";
-      setTimeout(() => notif.style.display = "none", 5000);
-    }
+    let partner = null;
+    let currentChannel = null;
 
+    const notif = msg => {
+      const n = document.getElementById("notif");
+      n.textContent = msg;
+      n.style.display = "block";
+      setTimeout(() => n.style.display = "none", 5000);
+    };
+
+    const getChannelName = (a, b) => {
+      return "chat_" + [a, b].sort().join("_");
+    };
+
+    document.getElementById("inviteBtn").onclick = () => {
+      const to = document.getElementById("inviteInput").value.trim();
+      if (!to || to === myName) return alert("Pseudo invalide");
+
+      fetch("/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: myName, to })
+      });
+
+      partner = to;
+      notif("📨 Invitation envoyée à " + to);
+    };
+
+    const subscribeToChat = () => {
+      const channelName = getChannelName(myName, partner);
+      currentChannel = pusher.subscribe(channelName);
+
+      currentChannel.bind("new-message", data => {
+        if (data.text === "__quit__") {
+          notif("🚪 L'autre utilisateur a quitté la conversation.");
+          cleanup();
+          return;
+        }
+        addMessage(data.from === myName ? "Toi" : data.from, data.text);
+      });
+
+      currentChannel.bind("chat-started", data => {
+        notif(data.message);
+      });
+
+      document.getElementById("input-area").style.display = "block";
+      document.getElementById("quitBtn").style.display = "block";
+    };
+
+    const addMessage = (sender, text) => {
+      const div = document.createElement("div");
+      div.textContent = `${sender} : ${text}`;
+      document.getElementById("messages").appendChild(div);
+      document.getElementById("messages").scrollTop = 99999;
+    };
+
+    document.getElementById("sendBtn").onclick = () => {
+      const text = document.getElementById("msgInput").value.trim();
+      if (!text || !partner) return;
+      fetch("/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: myName, to: partner, text })
+      });
+      document.getElementById("msgInput").value = "";
+    };
+
+    // 🔔 Invitation reçue
     const inviteChannel = pusher.subscribe("invite_" + myName);
     inviteChannel.bind("chat-invite", data => {
       if (confirm(`${data.from} veut discuter avec toi. Accepter ?`)) {
         partner = data.from;
-        localStorage.setItem('partnerName', partner);
-        fetch('/accept', {
-          method: 'POST',
+        fetch("/accept", {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ from: myName, to: partner })
         });
+        subscribeToChat();
       }
     });
 
+    // 🎉 Acceptation reçue
     inviteChannel.bind("chat-accepted", data => {
-      partner = data.from;
-      localStorage.setItem('partnerName', partner);
-      document.getElementById("input-area").style.display = "flex";
-      document.getElementById("quitBtn").style.display = "block";
-      isAccepted = true;
+      if (!partner) partner = data.from;
+      subscribeToChat();
     });
 
-    const channelName = getChatChannel(myName, partner);
-    const chatChannel = pusher.subscribe(channelName);
-    chatChannel.bind("chat-started", data => showNotification(data.message));
-    chatChannel.bind("new-message", data => {
-      if (data.from === myName) return;
-      addMessage(`${data.from}: ${data.text}`, false);
-    });
-
-    function sendMessage() {
-      const input = document.getElementById("message");
-      const text = input.value;
-      if (!text) return;
-      input.value = "";
-      addMessage(`Toi: ${text}`, true);
-      fetch('/message', {
-        method: 'POST',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myName, to: partner, text })
-      });
-    }
-
-    function addMessage(text, fromMe) {
-      const msgBox = document.getElementById("messages");
-      const p = document.createElement("p");
-      p.innerText = text;
-      msgBox.appendChild(p);
-      msgBox.scrollTop = msgBox.scrollHeight;
-    }
-
-    document.getElementById("quitBtn").addEventListener("click", () => {
-      if (!partner || !isAccepted) return;
-      fetch('/message', {
-        method: 'POST',
+    // ❌ Quitter
+    document.getElementById("quitBtn").onclick = () => {
+      fetch("/message", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
       });
-      showNotification("❌ Tu as quitté la conversation.");
-      localStorage.removeItem('partnerName');
+      notif("🚪 Tu as quitté la conversation.");
+      cleanup();
+    };
+
+    const cleanup = () => {
       document.getElementById("messages").innerHTML = "";
       document.getElementById("input-area").style.display = "none";
       document.getElementById("quitBtn").style.display = "none";
-      isAccepted = false;
-    });
+      partner = null;
+    };
 
-    chatChannel.bind("new-message", data => {
-      if (data.text === "__quit__") {
-        showNotification("❌ L'autre utilisateur a quitté la conversation.");
-        localStorage.removeItem('partnerName');
-        document.getElementById("messages").innerHTML = "";
-        document.getElementById("input-area").style.display = "none";
-        document.getElementById("quitBtn").style.display = "none";
-        isAccepted = false;
+    // 🔄 Si on recharge la page
+    window.addEventListener("beforeunload", () => {
+      if (partner) {
+        fetch("/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
+        });
       }
     });
-
-    function getChatChannel(a, b) {
-      if (!a || !b) return "temp";
-      return "chat_" + [a, b].sort().join("_");
-    }
   </script>
 </body>
 </html>
