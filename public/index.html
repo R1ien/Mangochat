@@ -212,14 +212,12 @@
       const channelName = getChannelName(myName, partner);
       currentChannel = pusher.subscribe(channelName);
 
-      currentChannel.bind("new-message", data => {
-        if (data.text === "__quit__") {
-          notif("🚪 L'autre utilisateur a quitté la conversation.");
-          cleanup();
-          return;
-        }
-        addMessage(data.from === myName ? "Toi" : data.from, data.text);
-      });
+currentChannel.bind("new-message", data => {
+  // Empêche d'afficher deux fois ton propre message
+  if (data.from === myCode) return;
+
+  addMessage(data.text, false);
+});
 
       currentChannel.bind("chat-started", data => {
         notif(data.message);
