@@ -36,7 +36,6 @@ app.post('/accept', (req, res) => {
   const chatChannel = getChatChannel(from, to);
   pusher.trigger(fromChannel, "chat-accepted", { from: to });
   pusher.trigger(toChannel, "chat-accepted", { from });
-  pusher.trigger(chatChannel, "user-left", { message: `✅ Conversation acceptée !` });
   res.sendStatus(200);
 });
 
@@ -45,13 +44,4 @@ app.post('/quit', (req, res) => {
   const channelName = getChatChannel(from, to);
   pusher.trigger(channelName, 'user-left', { message: `🚪 ${from} a quitté la conversation.` });
   res.sendStatus(200);
-});
-
-function getChatChannel(a, b) {
-  return "chat_" + [a, b].sort().join("_");
-}
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Serveur démarré sur le port", PORT);
 });
