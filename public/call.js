@@ -149,4 +149,20 @@ signalChannel.bind("signal", async data => {
     peerConnection = null;
     hideCallUI();
   }
+
+  function startCall() {
+  if (!partner || !localStream) {
+    alert("Pas de partenaire ou pas de micro !");
+    return;
+  }
+    document.getElementById("micStatus").textContent = "🎤 Micro : prêt ✅";
+
+  // À ce stade on peut commencer à créer une peer connection plus tard
+  console.log("📞 Démarrage de l’appel avec " + partner);
+}
+
+  document.getElementById("callBtn").addEventListener("click", () => {
+  startCall();
+});
+  
 });
