@@ -1,62 +1,66 @@
+// server.js
 const express = require('express');
-const app = express();
+const bodyParser = require('body-parser');
 const Pusher = require('pusher');
 const cors = require('cors');
 
+const app = express();
+const PORT = process.env.PORT || 5000;
+
 app.use(cors());
-app.use(express.json());
-app.use(express.static('public'));
+app.use(bodyParser.json());
 
+// Stockage en mémoire des pseudos (à remplacer par une vraie base en prod)
+const users = {};
+
+// Config Pusher (mets tes clés ici)
 const pusher = new Pusher({
-  appId: "2023592",
-  key: "21da0af69d3d1b97e425",
-  secret: "3de0052ed5c986f11bed",
-  cluster: "eu",
-  useTLS: true
+  appId: 'ton_app_id_ici',
+  key: '21da0af69d3d1b97e425',          // ta clé pusher
+  secret: 'ton_secret_ici',             // ton secret pusher
+  cluster: 'eu',
+  useTLS: true,
 });
 
-app.post('/message', (req, res) => {
-  const { from, to, text } = req.body;
-  const channelName = getChatChannel(from, to);
-  pusher.trigger(channelName, 'new-message', { from, text });
-  res.sendStatus(200);
+// Endpoint pour sauvegarder un pseudo
+app.post('/save-pseudo', (req, res) => {
+  const { pseudo } = req.body;
+  if (!pseudo || typeof pseudo !== 'string' || pseudo.length > 15) {
+    return res.status(400).json({ error: 'Pseudo invalide' });
+  }
+  if (users[pseudo]) {
+    return res.status(400).json({ error: 'Pseudo déjà pris' });
+  }
+  users[pseudo] = { pseudo };
+  console.log(`Pseudo sauvegardé: ${pseudo}`);
+  res.json({ success: true });
 });
 
-app.post('/invite', (req, res) => {
-  const { from, to } = req.body;
-  const channel = "invite_" + to;
-  pusher.trigger(channel, "chat-invite", { from });
-  res.sendStatus(200);
+// Endpoint pour vérifier si un pseudo existe (utile pour invitation)
+app.get('/check-pseudo/:pseudo', (req, res) => {
+  const pseudo = req.params.pseudo;
+  if (users[pseudo]) {
+    res.json({ exists: true });
+  } else {
+    res.json({ exists: false });
+  }
 });
 
-app.post('/accept', (req, res) => {
-  const { from, to } = req.body;
-  const fromChannel = "invite_" + from;
-  const toChannel = "invite_" + to;
-  const chatChannel = getChatChannel(from, to);
+// Endpoint d'authentification Pusher (pour canaux privés)
+app.post('/pusher/auth', (req, res) => {
+  const socketId = req.body.socket_id;
+  const channel = req.body.channel_name;
+  const userPseudo = req.body.user_pseudo; // envoi le pseudo côté client dans la requête auth
 
-  // Envoie à chacun l'acceptation
-  pusher.trigger(fromChannel, "chat-accepted", { from: to });
-  pusher.trigger(toChannel, "chat-accepted", { from });
-
-  // Envoie un message de début de conversation (ne ferme pas l’interface !)
-  pusher.trigger(chatChannel, "chat-started", { message: `✅ Conversation acceptée !` });
-
-  res.sendStatus(200);
+  // Vérifie que le canal correspond au user
+  if (channel === `private-chat-${userPseudo}` && users[userPseudo]) {
+    const auth = pusher.authenticate(socketId, channel);
+    res.send(auth);
+  } else {
+    res.status(403).json({ error: 'Unauthorized' });
+  }
 });
 
-app.post('/quit', (req, res) => {
-  const { from, to } = req.body;
-  const channelName = getChatChannel(from, to);
-  pusher.trigger(channelName, 'user-left', { message: `🚪 ${from} a quitté la conversation.` });
-  res.sendStatus(200);
-});
-
-function getChatChannel(a, b) {
-  return "chat_" + [a, b].sort().join("_");
-}
-
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Serveur démarré sur le port", PORT);
+  console.log(`Serveur lancé sur http://localhost:${PORT}`);
 });
