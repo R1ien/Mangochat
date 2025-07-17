@@ -8,212 +8,171 @@
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
     /* Reset & Base */
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      font-family: 'Montserrat', sans-serif;
-      background: linear-gradient(135deg, #e3f2fd, #ffffff);
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
-      padding: 20px;
-      color: #202124;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
+/* Styles communs */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 600px;
+  margin: 20px auto;
+  background: #f5f5f7;
+  color: #222;
+  padding: 0 10px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-    h2 {
-      font-weight: 600;
-      font-size: 1.4rem;
-      margin-bottom: 15px;
-      color: #0d47a1;
-      text-align: center;
-    }
+h2 {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #333;
+}
 
-    #myCode {
-      font-weight: 700;
-      color: #1565c0;
-      user-select: all;
-    }
+#myCode {
+  font-weight: 700;
+  color: #2c7be5;
+}
 
-    input, button {
-      border-radius: 25px;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-      padding: 12px 20px;
-      transition: box-shadow 0.3s ease, background-color 0.3s ease;
-    }
+#partnerCode {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 25px;
+  border: 1px solid #ddd;
+  font-size: 16px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
 
-    input {
-      background: #f1f3f4;
-      color: #202124;
-      width: 100%;
-      margin-bottom: 15px;
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-      font-weight: 400;
-    }
-    input:focus {
-      box-shadow: 0 0 8px #64b5f6;
-      background: #fff;
-    }
+#partnerCode:focus {
+  outline: none;
+  border-color: #2c7be5;
+  box-shadow: 0 0 8px rgba(44, 123, 229, 0.4);
+}
 
-    button {
-      background: #1565c0;
-      color: white;
-      cursor: pointer;
-      font-weight: 600;
-      box-shadow: 0 4px 8px rgba(21,101,192,0.4);
-      user-select: none;
-    }
-    button:hover {
-      background: #0d47a1;
-      box-shadow: 0 6px 14px rgba(13,71,161,0.6);
-    }
-    button:active {
-      background: #0a3b7a;
-      box-shadow: 0 3px 6px rgba(10,59,122,0.8);
-      transform: translateY(1px);
-    }
+#notif {
+  margin: 10px 0 20px 0;
+  padding: 12px 15px;
+  background: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #856404;
+  display: none;
+  word-break: break-word;
+}
 
-    #notif {
-      background: #fffbdd;
-      border: 1.5px solid #ffeb3b;
-      color: #795548;
-      padding: 14px 20px;
-      border-radius: 25px;
-      margin-bottom: 15px;
-      font-weight: 500;
-      display: none;
-      box-shadow: 0 2px 8px rgba(255,235,59,0.5);
-      user-select: none;
-      text-align: center;
-    }
-    #notif button {
-      margin-left: 10px;
-      background: #4caf50;
-      box-shadow: none;
-      font-weight: 600;
-    }
-    #notif button:hover {
-      background: #388e3c;
-      box-shadow: none;
-    }
+#messages {
+  height: 350px;
+  overflow-y: auto;
+  background: #fff;
+  padding: 15px;
+  border-radius: 15px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+  border: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  scroll-behavior: smooth;
+}
 
-    #messages {
-      height: 350px;
-      overflow-y: auto;
-      background: white;
-      border-radius: 20px;
-      padding: 20px 15px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.07);
-      scrollbar-width: thin;
-      scrollbar-color: #90caf9 transparent;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    #messages::-webkit-scrollbar {
-      width: 7px;
-    }
-    #messages::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    #messages::-webkit-scrollbar-thumb {
-      background-color: #90caf9;
-      border-radius: 20px;
-      border: 2px solid transparent;
-    }
+.message {
+  max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 20px;
+  font-size: 15px;
+  line-height: 1.3;
+  word-wrap: break-word;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  transition: background-color 0.3s ease;
+}
 
-    .message {
-      max-width: 75%;
-      padding: 14px 20px;
-      border-radius: 20px;
-      font-weight: 500;
-      line-height: 1.3;
-      word-break: break-word;
-      opacity: 0;
-      animation: fadeInUp 0.35s forwards;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    }
-    .from-me {
-      background: #dcf8c6;
-      align-self: flex-end;
-      border-bottom-right-radius: 3px;
-      color: #202124;
-    }
-    .from-them {
-      background: #fff;
-      border: 1px solid #ddd;
-      align-self: flex-start;
-      border-bottom-left-radius: 3px;
-      color: #202124;
-    }
+.from-me {
+  background: #dcf8c6;
+  align-self: flex-end;
+  color: #222;
+}
 
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
+.from-them {
+  background: #ffffff;
+  border: 1px solid #ddd;
+  align-self: flex-start;
+  color: #222;
+}
 
-    #input-area {
-      margin-top: 20px;
-      display: none;
-      gap: 12px;
-      align-items: center;
-    }
-    #input-area input {
-      flex-grow: 1;
-      font-size: 1.1rem;
-      padding: 14px 20px;
-      border-radius: 25px;
-      background: #f1f3f4;
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-      transition: box-shadow 0.3s ease;
-    }
-    #input-area input:focus {
-      box-shadow: 0 0 8px #64b5f6;
-      background: #fff;
-    }
+#input-area {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
 
-    /* Mobile Responsive */
-    @media (max-width: 600px) {
-      body {
-        max-width: 100%;
-        padding: 15px 10px;
-        font-size: 18px;
-      }
-      #messages {
-        height: 400px;
-        padding: 18px 15px;
-      }
-      #input-area {
-        display: flex !important;
-      }
-      #input-area input {
-        font-size: 1.3rem;
-      }
-      button {
-        font-size: 1.3rem;
-        padding: 14px 24px;
-        border-radius: 30px;
-      }
-      #notif {
-        font-size: 1.2rem;
-        padding: 16px 22px;
-      }
-      h2 {
-        font-size: 1.6rem;
-      }
-    }
-  </style>
+#messageInput {
+  flex-grow: 1;
+  padding: 12px 15px;
+  font-size: 16px;
+  border-radius: 25px;
+  border: 1px solid #ddd;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+#messageInput:focus {
+  border-color: #2c7be5;
+  box-shadow: 0 0 8px rgba(44, 123, 229, 0.4);
+}
+
+button {
+  background-color: #2c7be5;
+  border: none;
+  color: white;
+  padding: 12px 25px;
+  font-size: 16px;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 3px 8px rgba(44, 123, 229, 0.4);
+}
+
+button:hover {
+  background-color: #1a5fc1;
+}
+
+/* Styles spécifiques mobile */
+@media (max-width: 600px) {
+  body {
+    padding: 10px;
+  }
+
+  #messages {
+    height: 300px;
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  #partnerCode, #messageInput {
+    font-size: 18px;
+    padding: 14px 20px;
+  }
+
+  button {
+    padding: 14px 20px;
+    font-size: 18px;
+  }
+
+  /* Zoom pour le body mobile */
+  html, body {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 125%; /* zoom texte +25% */
+    -moz-text-size-adjust: 125%;
+    -ms-text-size-adjust: 125%;
+    text-size-adjust: 125%;
+  }
+
+  /* Assure que #notif soit visible sans overflow */
+  #notif {
+    font-size: 15px;
+    padding: 14px 18px;
+  }
+}
+
 </head>
 <body>
 
