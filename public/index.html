@@ -82,14 +82,14 @@
     }
 
     button {
-      background-color: #e27b00;
+      background-color: #cc7200;
       color: white;
       border: none;
       cursor: pointer;
     }
 
     button:hover {
-      background-color: #cc6c00;
+      background-color: #a65b00;
     }
 
     #partnerCode {
@@ -126,7 +126,6 @@
 <h2>MangoChat 🥭 - Ton code : <span id="myCode"></span></h2>
 <input id="partnerCode" placeholder="Code de l'autre" />
 <div id="notif"></div>
-
 <div id="messages"></div>
 <div id="input-area">
   <input id="messageInput" placeholder="Message..." />
@@ -138,8 +137,11 @@
   const PUSHER_KEY = "21da0af69d3d1b97e425";
   const PUSHER_CLUSTER = "eu";
 
-  const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
-  localStorage.setItem("code", myCode);
+  const myCode = localStorage.getItem("fixed_code") || (function () {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    localStorage.setItem("fixed_code", code);
+    return code;
+  })();
   document.getElementById("myCode").textContent = myCode;
 
   let partner = "";
@@ -157,13 +159,12 @@
   });
 
   inviteChannel.bind("chat-accepted", data => {
-    if (!isAccepted) {
-      partner = data.from;
-      isAccepted = true;
-      subscribeToChat(partner);
-      showChatUI(true);
-      showNotification("✅ Conversation acceptée !");
-    }
+    partner = data.from;
+    isAccepted = true;
+    subscribeToChat(partner);
+    showNotification("✅ Conversation acceptée !");
+    document.getElementById("input-area").style.display = "flex";
+    document.getElementById("messages").style.display = "block";
   });
 
   document.getElementById("partnerCode").addEventListener("change", function () {
@@ -188,8 +189,9 @@
       body: JSON.stringify({ from: myCode, to: partner })
     }).then(() => {
       subscribeToChat(partner);
-      showChatUI(true);
       showNotification("✅ Conversation acceptée !");
+      document.getElementById("input-area").style.display = "flex";
+      document.getElementById("messages").style.display = "block";
     });
   }
 
@@ -203,14 +205,12 @@
     });
     currentChannel.bind("user-left", data => {
       showNotification(data.message);
-      showChatUI(false);
       setTimeout(() => {
-        document.getElementById("notif").style.display = "none";
+        document.getElementById("input-area").style.display = "none";
+        document.getElementById("messages").style.display = "none";
       }, 5000);
     });
-    messageHistory = [];
     document.getElementById("messages").innerHTML = "";
-    document.getElementById("messages").style.display = "block";
   }
 
   function send() {
@@ -231,7 +231,6 @@
     div.textContent = text;
     document.getElementById("messages").appendChild(div);
     document.getElementById("messages").scrollTop = 9999;
-    messageHistory.push({ text, me });
   }
 
   function showNotification(msg) {
@@ -241,24 +240,21 @@
   }
 
   function quit() {
+    if (!partner) return;
     fetch('/quit', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
     });
-    partner = "";
     isAccepted = false;
+    partner = "";
     if (currentChannel) pusher.unsubscribe(currentChannel.name);
-    showChatUI(false);
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("messages").style.display = "none";
     showNotification("❌ Conversation quittée.");
     setTimeout(() => {
       document.getElementById("notif").style.display = "none";
     }, 5000);
-  }
-
-  function showChatUI(show) {
-    document.getElementById("input-area").style.display = show ? "flex" : "none";
-    document.getElementById("messages").style.display = show ? "block" : "none";
   }
 </script>
 
