@@ -3,38 +3,129 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1">
-  <title>Chat style WhatsApp</title>
+  <title>MangoChat 🥭</title>
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
-    body { font-family: Arial; max-width: 600px; margin: auto; }
-    #messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
-    .message { padding: 5px 10px; margin: 5px; border-radius: 15px; max-width: 70%; }
-    .from-me { background: #DCF8C6; margin-left: auto; }
-    .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
-    #notif { margin: 10px 0; padding: 10px; background: #fffae6; display: none; border: 1px solid #ffd700; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 600px;
+      margin: auto;
+      background: linear-gradient(to bottom, #ffe259, #ffa751);
+      background-attachment: fixed;
+      color: #333;
+      position: relative;
+      overflow-x: hidden;
+      padding: 10px;
+    }
+
+    #messages {
+      height: 300px;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 2px solid #ffa50088;
+      padding: 10px;
+      background: #fff7e6;
+      margin-bottom: 10px;
+    }
+
+    .message {
+      padding: 8px 12px;
+      margin: 5px;
+      border-radius: 15px;
+      max-width: 75%;
+      word-wrap: break-word;
+    }
+
+    .from-me {
+      background: #caffb9;
+      margin-left: auto;
+    }
+
+    .from-them {
+      background: #ffffff;
+      border: 1px solid #ccc;
+      margin-right: auto;
+    }
+
+    #notif {
+      margin: 10px 0;
+      padding: 10px;
+      background: #fff3cd;
+      display: none;
+      border: 1px solid #ffeeba;
+      border-radius: 8px;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    h2::before {
+      content: "🥭 ";
+    }
+
+    #input-area {
+      display: none;
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    input, button {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background-color: #ffa751;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #ff8f1f;
+    }
 
     @media only screen and (max-width: 768px) {
-      body { font-size: 1.2rem; padding: 10px; }
-      input, button { font-size: 1rem; padding: 12px; }
-      #messageInput { width: 100%; margin-bottom: 10px; }
-      #messages { height: 250px; }
-      #input-area { flex-direction: column; align-items: stretch; gap: 10px; }
-      h2 { font-size: 1.5rem; text-align: center; }
-      .message { font-size: 1rem; max-width: 90%; }
+      body {
+        font-size: 1.2rem;
+        zoom: 1.2;
+        padding: 10px;
+      }
+      input, button {
+        font-size: 1rem;
+        padding: 12px;
+      }
+      #messages {
+        height: 250px;
+      }
+      .message {
+        font-size: 1rem;
+        max-width: 90%;
+      }
+      #input-area {
+        flex-direction: column;
+        align-items: stretch;
+      }
     }
   </style>
 </head>
 <body>
 
-<h2>Ton code : <span id="myCode"></span></h2>
-<input id="partnerCode" placeholder="Code de l'autre" style="width:100%; padding:8px;" />
+<h2>MangoChat 🥭 - Ton code : <span id="myCode"></span></h2>
+<input id="partnerCode" placeholder="Code de l'autre" style="width:100%;" />
 <div id="notif"></div>
 
 <div id="messages"></div>
-<div id="input-area" style="display:none; margin-top:10px;">
-  <input id="messageInput" placeholder="Message..." style="width:80%; padding:10px;" />
+<div id="input-area">
+  <input id="messageInput" placeholder="Message..." />
   <button onclick="send()">Envoyer</button>
-  <button onclick="quit()" style="background:red;color:white;margin-left:5px;">Quitter</button>
+  <button onclick="quit()" style="background:red;color:white;">Quitter</button>
 </div>
 
 <script>
@@ -68,7 +159,7 @@
       localStorage.setItem("accepted", "true");
       subscribeToChat(partner);
       showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "block";
+      document.getElementById("input-area").style.display = "flex";
       invitationPending = false;
     } else {
       showNotification("✅ Conversation acceptée !");
@@ -78,7 +169,7 @@
 
   if (isAccepted && partner) {
     subscribeToChat(partner);
-    document.getElementById("input-area").style.display = "block";
+    document.getElementById("input-area").style.display = "flex";
   }
 
   document.getElementById("partnerCode").addEventListener("change", function () {
@@ -108,7 +199,7 @@
     }).then(() => {
       subscribeToChat(partner);
       showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "block";
+      document.getElementById("input-area").style.display = "flex";
       invitationPending = false;
     });
   }
