@@ -3,102 +3,230 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, user-scalable=yes" />
-  <title>Chat style WhatsApp</title>
+  <title>Chat moderne style WhatsApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
+    /* Reset & Base */
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: Arial, sans-serif;
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, #e3f2fd, #ffffff);
       max-width: 600px;
-      margin: auto;
-      padding: 10px;
-      font-size: 14px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 20px;
+      color: #202124;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
+
+    h2 {
+      font-weight: 600;
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+      color: #0d47a1;
+      text-align: center;
+    }
+
+    #myCode {
+      font-weight: 700;
+      color: #1565c0;
+      user-select: all;
+    }
+
+    input, button {
+      border-radius: 25px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      padding: 12px 20px;
+      transition: box-shadow 0.3s ease, background-color 0.3s ease;
+    }
+
+    input {
+      background: #f1f3f4;
+      color: #202124;
+      width: 100%;
+      margin-bottom: 15px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+      font-weight: 400;
+    }
+    input:focus {
+      box-shadow: 0 0 8px #64b5f6;
+      background: #fff;
+    }
+
+    button {
+      background: #1565c0;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+      box-shadow: 0 4px 8px rgba(21,101,192,0.4);
+      user-select: none;
+    }
+    button:hover {
+      background: #0d47a1;
+      box-shadow: 0 6px 14px rgba(13,71,161,0.6);
+    }
+    button:active {
+      background: #0a3b7a;
+      box-shadow: 0 3px 6px rgba(10,59,122,0.8);
+      transform: translateY(1px);
+    }
+
+    #notif {
+      background: #fffbdd;
+      border: 1.5px solid #ffeb3b;
+      color: #795548;
+      padding: 14px 20px;
+      border-radius: 25px;
+      margin-bottom: 15px;
+      font-weight: 500;
+      display: none;
+      box-shadow: 0 2px 8px rgba(255,235,59,0.5);
+      user-select: none;
+      text-align: center;
+    }
+    #notif button {
+      margin-left: 10px;
+      background: #4caf50;
+      box-shadow: none;
+      font-weight: 600;
+    }
+    #notif button:hover {
+      background: #388e3c;
+      box-shadow: none;
+    }
+
     #messages {
-      height: 300px;
+      height: 350px;
       overflow-y: auto;
-      border: 1px solid #ccc;
-      padding: 10px;
+      background: white;
+      border-radius: 20px;
+      padding: 20px 15px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+      scrollbar-width: thin;
+      scrollbar-color: #90caf9 transparent;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
+    #messages::-webkit-scrollbar {
+      width: 7px;
+    }
+    #messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #messages::-webkit-scrollbar-thumb {
+      background-color: #90caf9;
+      border-radius: 20px;
+      border: 2px solid transparent;
+    }
+
     .message {
-      padding: 5px 10px;
-      margin: 5px;
-      border-radius: 15px;
-      max-width: 70%;
-      word-wrap: break-word;
+      max-width: 75%;
+      padding: 14px 20px;
+      border-radius: 20px;
+      font-weight: 500;
+      line-height: 1.3;
+      word-break: break-word;
+      opacity: 0;
+      animation: fadeInUp 0.35s forwards;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
     .from-me {
-      background: #DCF8C6;
-      margin-left: auto;
+      background: #dcf8c6;
+      align-self: flex-end;
+      border-bottom-right-radius: 3px;
+      color: #202124;
     }
     .from-them {
       background: #fff;
-      border: 1px solid #ccc;
-      margin-right: auto;
-    }
-    #notif {
-      margin: 10px 0;
-      padding: 10px;
-      background: #fffae6;
-      display: none;
-      border: 1px solid #ffd700;
-      font-size: 14px;
+      border: 1px solid #ddd;
+      align-self: flex-start;
+      border-bottom-left-radius: 3px;
+      color: #202124;
     }
 
-    /* Styles spécifiques mobile (max 600px) */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #input-area {
+      margin-top: 20px;
+      display: none;
+      gap: 12px;
+      align-items: center;
+    }
+    #input-area input {
+      flex-grow: 1;
+      font-size: 1.1rem;
+      padding: 14px 20px;
+      border-radius: 25px;
+      background: #f1f3f4;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s ease;
+    }
+    #input-area input:focus {
+      box-shadow: 0 0 8px #64b5f6;
+      background: #fff;
+    }
+
+    /* Mobile Responsive */
     @media (max-width: 600px) {
       body {
         max-width: 100%;
+        padding: 15px 10px;
         font-size: 18px;
-        padding: 15px;
       }
       #messages {
         height: 400px;
-        font-size: 18px;
-        padding: 12px;
-      }
-      .message {
-        max-width: 90%;
-        font-size: 18px;
-        padding: 12px 18px;
-        margin: 8px 0;
-      }
-      #partnerCode, #messageInput {
-        font-size: 18px;
-        padding: 14px;
-        width: 100% !important;
-        box-sizing: border-box;
+        padding: 18px 15px;
       }
       #input-area {
         display: flex !important;
-        gap: 12px;
-        margin-top: 10px;
       }
       #input-area input {
-        flex-grow: 1;
+        font-size: 1.3rem;
       }
       button {
-        font-size: 18px;
-        padding: 12px 18px;
-        cursor: pointer;
+        font-size: 1.3rem;
+        padding: 14px 24px;
+        border-radius: 30px;
       }
       #notif {
-        font-size: 18px;
-        padding: 14px;
+        font-size: 1.2rem;
+        padding: 16px 22px;
+      }
+      h2 {
+        font-size: 1.6rem;
       }
     }
   </style>
 </head>
 <body>
 
-<h2>Ton code : <span id="myCode"></span></h2>
-<input id="partnerCode" placeholder="Code de l'autre" autocomplete="off" />
-<div id="notif"></div>
+  <h2>Ton code : <span id="myCode"></span></h2>
+  <input id="partnerCode" placeholder="Code de l'autre" autocomplete="off" />
+  <div id="notif"></div>
 
-<div id="messages"></div>
-<div id="input-area" style="display:none; margin-top:10px;">
-  <input id="messageInput" placeholder="Message..." autocomplete="off" />
-  <button onclick="send()">Envoyer</button>
-</div>
+  <div id="messages"></div>
+
+  <div id="input-area">
+    <input id="messageInput" placeholder="Écris ton message..." autocomplete="off" />
+    <button onclick="send()">Envoyer</button>
+  </div>
 
 <script>
   const PUSHER_KEY = "21da0af69d3d1b97e425";
