@@ -12,6 +12,50 @@
     .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
     #notif { margin: 10px 0; padding: 10px; background: #fffae6; display: none; border: 1px solid #ffd700; }
   </style>
+
+  <style>
+  /* Styles pour mobile seulement */
+  @media (max-width: 600px) {
+    body {
+      max-width: 100%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    #messages {
+      height: 400px; /* un peu plus haut sur mobile */
+      font-size: 16px;
+      padding: 8px;
+    }
+    .message {
+      max-width: 90%;
+      font-size: 16px;
+      padding: 10px 15px;
+      margin: 6px 0;
+    }
+    #partnerCode, #messageInput {
+      font-size: 16px;
+      padding: 12px;
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+    #input-area {
+      display: flex !important;
+      gap: 10px;
+    }
+    #input-area input {
+      flex-grow: 1;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 15px;
+    }
+    #notif {
+      font-size: 16px;
+      padding: 12px;
+    }
+  }
+</style>
+
 </head>
 <body>
 
