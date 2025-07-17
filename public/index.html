@@ -14,8 +14,14 @@
   }
   h1 {
     font-size: 2rem;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     user-select: none;
+  }
+  #myPseudoDisplay {
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    color: #ef6c00;
   }
   #login, #chat {
     background: rgba(255,255,255,0.9);
@@ -132,10 +138,11 @@
 
 <h1>MangoChat 🥭</h1>
 
+<div id="myPseudoDisplay" style="display:none;">
+  Ton pseudo : <span id="pseudoText"></span>
+</div>
+
 <div id="login">
-  <label for="myPseudo">Ton pseudo :</label>
-  <input id="myPseudo" type="text" placeholder="Ton pseudo" />
-  
   <label for="partnerPseudo">Pseudo de la personne :</label>
   <input id="partnerPseudo" type="text" placeholder="Pseudo de ton contact" />
   
@@ -146,7 +153,7 @@
 
 <div id="chat">
   <div id="messages"></div>
-  <div id="input-area">
+  <div id="input-area" style="display:none;">
     <input id="messageInput" type="text" placeholder="Écris un message..." />
     <button id="sendMsgBtn">Envoyer</button>
   </div>
@@ -155,30 +162,51 @@
 
 <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
 <script>
-  // Variables globales
   let myPseudo = null;
   let partner = null;
   let isAccepted = false;
   let currentChannel = null;
 
-  // Init Pusher (ta clé et cluster)
+  // Demander pseudo une seule fois avec prompt
+  function askPseudo() {
+    let saved = localStorage.getItem('myPseudo');
+    if (saved) {
+      myPseudo = saved;
+      showMyPseudo();
+    } else {
+      let p = null;
+      do {
+        p = prompt("Choisis ton pseudo (sans espace, max 15 caractères) :");
+        if (!p) alert('Pseudo obligatoire');
+        else if (p.length > 15) alert('Pseudo trop long');
+        else if (p.trim() === '') alert('Pseudo invalide');
+      } while (!p || p.trim() === '' || p.length > 15);
+      myPseudo = p.trim();
+      localStorage.setItem('myPseudo', myPseudo);
+
+      // TODO: ici envoyer myPseudo au serveur pour sauvegarde dans la base
+      // fetch('/save-pseudo', {method:'POST', body: JSON.stringify({pseudo: myPseudo}), headers:{'Content-Type':'application/json'}})
+      showMyPseudo();
+    }
+  }
+
+  // Afficher pseudo en haut
+  function showMyPseudo() {
+    document.getElementById('myPseudoDisplay').style.display = 'block';
+    document.getElementById('pseudoText').textContent = myPseudo;
+  }
+
+  // Init Pusher
   const pusher = new Pusher('21da0af69d3d1b97e425', {
     cluster: 'eu',
-    authEndpoint: '/pusher/auth', // Remplace par ton endpoint d’auth si besoin, sinon voir doc Pusher
-    auth: {
-      params: { user_id: '' },
-      headers: {}
-    }
   });
 
-  // Helper afficher notif
   function showNotification(msg) {
     const notif = document.getElementById('notif');
     notif.innerText = msg;
     notif.style.display = 'block';
   }
 
-  // Ajouter message à l’écran
   function addMessage(text, isMe) {
     const messagesDiv = document.getElementById('messages');
     const div = document.createElement('div');
@@ -188,7 +216,6 @@
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   }
 
-  // Envoie un message via Pusher
   function sendMessage(text) {
     if (!currentChannel || !isAccepted) return;
     addMessage(text, true);
@@ -200,20 +227,21 @@
     });
   }
 
-  // Écoute les messages Pusher
   function subscribeToChat() {
-    if (currentChannel) currentChannel.unsubscribe();
+    if (currentChannel) {
+      pusher.unsubscribe('private-chat-' + myPseudo);
+    }
+
     currentChannel = pusher.subscribe('private-chat-' + myPseudo);
 
     currentChannel.bind('client-new-message', data => {
-      if (data.from === myPseudo) return; // Ignore nos propres messages (affichés direct)
+      if (data.from === myPseudo) return;
 
       if (data.text === '__quit__') {
         showNotification('❌ ' + partner + ' a quitté la conversation.');
         setTimeout(() => {
           document.getElementById('notif').style.display = 'none';
         }, 5000);
-
         resetConversation();
         return;
       }
@@ -221,10 +249,9 @@
       addMessage(data.text, false);
     });
 
-    // Invitation reçue
     currentChannel.bind('client-invite', data => {
       if (data.to !== myPseudo) return;
-      if (isAccepted || partner) return; // déjà en conversation
+      if (isAccepted || partner) return;
 
       showNotification(`Invitation reçue de ${data.from} ! Accepter ?`);
 
@@ -236,129 +263,67 @@
         showNotification(`Conversation acceptée avec ${partner}`);
         document.getElementById('quitBtn').style.display = 'block';
         subscribeToChat();
-        currentChannel.trigger('client-accept', { from: myPseudo, to: partner });
-        switchToChat();
       } else {
-        showNotification('Invitation refusée.');
-      }
-    });
-
-    // Invitation acceptée
-    currentChannel.bind('client-accept', data => {
-      if (data.to !== myPseudo) return;
-
-      partner = data.from;
-      isAccepted = true;
-      localStorage.setItem('partnerCode', partner);
-      showNotification('Conversation acceptée par ' + partner);
-      document.getElementById('quitBtn').style.display = 'block';
-      switchToChat();
-    });
-
-    // Quitter conversation
-    currentChannel.bind('client-leave-conversation', data => {
-      if (data.from === partner) {
-        showNotification('❌ ' + partner + ' a quitté la conversation.');
-        setTimeout(() => {
-          document.getElementById('notif').style.display = 'none';
-        }, 5000);
-        resetConversation();
+        showNotification(`Invitation refusée.`);
       }
     });
   }
 
-  // Nettoyer la conversation
   function resetConversation() {
     partner = null;
     isAccepted = false;
-    localStorage.removeItem('partnerCode');
-    localStorage.removeItem('messageHistory');
     document.getElementById('messages').innerHTML = '';
     document.getElementById('input-area').style.display = 'none';
     document.getElementById('quitBtn').style.display = 'none';
   }
 
-  // Passer de login à chat
-  function switchToChat() {
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('chat').style.display = 'flex';
-    document.getElementById('input-area').style.display = 'flex';
-  }
-
-  // Envoyer invitation
-  document.getElementById('sendInviteBtn').addEventListener('click', () => {
-    const myP = document.getElementById('myPseudo').value.trim();
-    const partnerP = document.getElementById('partnerPseudo').value.trim();
-
-    if (!myP || !partnerP) {
-      alert('Remplis les deux pseudos');
-      return;
-    }
-    if (myP === partnerP) {
-      alert('Tu ne peux pas inviter toi-même');
-      return;
-    }
-
-    myPseudo = myP;
-    partner = partnerP;
-
-    localStorage.setItem('myPseudo', myPseudo);
-    localStorage.setItem('partnerCode', partner);
-
+  window.onload = () => {
+    askPseudo();
     subscribeToChat();
 
-    // Envoyer invitation
-    currentChannel.trigger('client-invite', { from: myPseudo, to: partner });
-    showNotification('Invitation envoyée à ' + partner + ', en attente de réponse...');
-  });
+    document.getElementById('sendInviteBtn').onclick = () => {
+      const target = document.getElementById('partnerPseudo').value.trim();
+      if (!target) {
+        alert('Entre un pseudo valide');
+        return;
+      }
+      if (target === myPseudo) {
+        alert('Tu ne peux pas t\'inviter toi-même !');
+        return;
+      }
 
-  // Envoyer message
-  document.getElementById('sendMsgBtn').addEventListener('click', () => {
-    const text = document.getElementById('messageInput').value.trim();
-    if (!text) return;
-    sendMessage(text);
-    document.getElementById('messageInput').value = '';
-  });
-
-  // Quitter conversation bouton
-  document.getElementById('quitBtn').addEventListener('click', () => {
-    if (!partner || !isAccepted) return;
-
-    currentChannel.trigger('client-new-message', {
-      from: myPseudo,
-      to: partner,
-      text: '__quit__'
-    });
-
-    showNotification('❌ Tu as quitté la conversation.');
-
-    resetConversation();
-  });
-
-  // Quitter conversation à la fermeture/rechargement
-  window.addEventListener('beforeunload', () => {
-    if (partner && isAccepted) {
-      currentChannel.trigger('client-leave-conversation', {
+      // Envoyer invitation via pusher client event
+      currentChannel.trigger('client-invite', {
         from: myPseudo,
-        to: partner
+        to: target
       });
-    }
-    resetConversation();
-  });
 
-  // Au chargement, tentative de restauration si possible
-  window.addEventListener('load', () => {
-    myPseudo = localStorage.getItem('myPseudo');
-    partner = localStorage.getItem('partnerCode');
+      partner = target;
+      isAccepted = false;
+      showNotification(`Invitation envoyée à ${target}. En attente de réponse...`);
+    };
 
-    if (myPseudo && partner) {
-      subscribeToChat();
-      isAccepted = true;
-      switchToChat();
-      document.getElementById('quitBtn').style.display = 'block';
-      showNotification('Reconnexion à la conversation avec ' + partner);
-    }
-  });
+    document.getElementById('sendMsgBtn').onclick = () => {
+      const msg = document.getElementById('messageInput').value.trim();
+      if (!msg) return;
+      sendMessage(msg);
+      document.getElementById('messageInput').value = '';
+      document.getElementById('input-area').style.display = 'flex';
+    };
+
+    document.getElementById('quitBtn').onclick = () => {
+      if (!currentChannel || !partner) return;
+
+      currentChannel.trigger('client-new-message', {
+        from: myPseudo,
+        to: partner,
+        text: '__quit__'
+      });
+      resetConversation();
+      showNotification('Tu as quitté la conversation.');
+    };
+  };
 </script>
+
 </body>
 </html>
