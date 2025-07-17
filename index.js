@@ -52,6 +52,21 @@ app.post('/leave', (req, res) => {
   res.sendStatus(200);
 });
 
+app.post("/signal", (req, res) => {
+  const { from, to, data } = req.body;
+
+  if (!from || !to || !data) {
+    return res.status(400).json({ error: "Données incomplètes." });
+  }
+
+  pusher.trigger("signal_" + to, "signal", {
+    from,
+    data
+  });
+
+  res.status(200).json({ success: true });
+});
+
 function getChatChannel(a, b) {
   return "chat_" + [a, b].sort().join("_");
 }
