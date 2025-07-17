@@ -75,3 +75,38 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Serveur démarré sur le port", PORT);
 });
+
+// Demande d'appel
+app.post('/call-request', (req, res) => {
+  const { from, to } = req.body;
+  pusher.trigger("call-invite_" + to, "call-request", { from });
+  res.sendStatus(200);
+});
+
+// Réponse à l'appel (accepté ou refusé)
+app.post('/call-response', (req, res) => {
+  const { from, to, accept } = req.body;
+  pusher.trigger("call-invite_" + to, "call-response", { from, accept });
+  res.sendStatus(200);
+});
+
+// Offre WebRTC (SDP offer)
+app.post('/webrtc-offer', (req, res) => {
+  const { from, to, offer } = req.body;
+  pusher.trigger("call-invite_" + to, "webrtc-offer", { from, offer });
+  res.sendStatus(200);
+});
+
+// Réponse WebRTC (SDP answer)
+app.post('/webrtc-answer', (req, res) => {
+  const { from, to, answer } = req.body;
+  pusher.trigger("call-invite_" + to, "webrtc-answer", { from, answer });
+  res.sendStatus(200);
+});
+
+// ICE candidates
+app.post('/webrtc-ice-candidate', (req, res) => {
+  const { from, to, candidate } = req.body;
+  pusher.trigger("call-invite_" + to, "webrtc-ice-candidate", { from, candidate });
+  res.sendStatus(200);
+});
