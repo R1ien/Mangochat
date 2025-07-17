@@ -2,395 +2,386 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mangochat - Chat tropical 🥭</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.1" />
+  <title>MangoChat 🍋</title>
+  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
   <style>
-    /* RESET & BASE */
-    * {
-      box-sizing: border-box;
-    }
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #ffe259 0%, #ffa751 100%);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    color: #333;
+  }
+
+  main {
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    max-width: 600px;
+    width: 100%;
+    padding: 25px 30px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+
+  h2 {
+    margin: 0 0 15px;
+    font-weight: 700;
+    font-size: 2.2rem;
+    text-align: center;
+    color: #f57c00; /* un orange punchy */
+    user-select: none;
+  }
+
+  #notif {
+    text-align: center;
+    background: #e1f5fe;
+    border-radius: 10px;
+    padding: 8px 15px;
+    color: #0277bd;
+    font-weight: 600;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 6px rgba(2, 119, 189, 0.3);
+    display: none;
+  }
+
+  #nameDisplay {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: #ff6f00;
+    user-select: none;
+  }
+
+  #inviteBox {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  #inviteInput {
+    flex-grow: 1;
+    padding: 12px 15px;
+    border: 2px solid #ffb300;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  #inviteInput:focus {
+    border-color: #f57c00;
+    outline: none;
+    box-shadow: 0 0 6px #f57c00aa;
+  }
+
+  button {
+    background: #f57c00;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 5px 10px rgba(245, 124, 0, 0.5);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  button:hover {
+    background: #ff6f00;
+    box-shadow: 0 7px 14px rgba(255, 111, 0, 0.7);
+  }
+
+  #messages {
+    flex-grow: 1;
+    background: #fff8e1;
+    border-radius: 15px;
+    padding: 15px;
+    height: 300px;
+    overflow-y: auto;
+    box-shadow: inset 0 0 8px #ffb300aa;
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  #messages div {
+    margin-bottom: 12px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 70%;
+    word-wrap: break-word;
+  }
+
+  /* Messages envoyés */
+  #messages div:nth-child(odd) {
+    background-color: #ffe082;
+    margin-left: auto;
+    color: #5d4037;
+  }
+
+  /* Messages reçus */
+  #messages div:nth-child(even) {
+    background-color: #fff3e0;
+    color: #6d4c41;
+  }
+
+  #input-area {
+    display: none;
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+  }
+
+  #msgInput {
+    flex-grow: 1;
+    padding: 12px 15px;
+    border-radius: 12px;
+    border: 2px solid #ffb300;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  #msgInput:focus {
+    border-color: #f57c00;
+    outline: none;
+    box-shadow: 0 0 6px #f57c00aa;
+  }
+
+  #quitBtn {
+    margin-top: 15px;
+    background: #d84315;
+    box-shadow: 0 5px 10px rgba(216, 67, 21, 0.5);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    display: none;
+  }
+  #quitBtn:hover {
+    background: #bf360c;
+    box-shadow: 0 7px 14px rgba(191, 54, 12, 0.7);
+  }
+
+  /* Scrollbar custom */
+  #messages::-webkit-scrollbar {
+    width: 8px;
+  }
+  #messages::-webkit-scrollbar-thumb {
+    background: #f57c00;
+    border-radius: 10px;
+  }
+  #messages::-webkit-scrollbar-track {
+    background: #fff8e1;
+  }
+
+  /* Mobile */
+  @media (max-width: 480px) {
     body {
-      margin: 0; padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #f9d976, #f39f86);
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      color: #4e342e;
-    }
-    header {
-      background: #f57c00;
-      color: white;
-      font-size: 1.5rem;
-      padding: 1rem;
-      text-align: center;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.16);
-      user-select: none;
+      padding: 10px;
     }
     main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 1rem;
-      gap: 0.5rem;
-      overflow: hidden;
-    }
-
-    #messages {
-      flex: 1;
-      background: #fff3e0;
+      padding: 15px 20px;
       border-radius: 10px;
-      padding: 10px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      box-shadow: inset 0 0 10px #f57c0077;
     }
-
-    .message {
-      max-width: 75%;
-      padding: 10px 14px;
-      border-radius: 20px;
-      line-height: 1.3;
-      font-weight: 500;
-      word-wrap: break-word;
-      box-shadow: 0 2px 5px rgb(0 0 0 / 0.1);
-      transition: background-color 0.3s ease;
+    h2 {
+      font-size: 1.8rem;
     }
-    .mine {
-      background-color: #ffe082;
-      color: #5d4037;
-      align-self: flex-end;
-      border-bottom-right-radius: 4px;
+    #messages {
+      height: 220px;
     }
-    .other {
-      background-color: #fff;
-      color: #6d4c41;
-      align-self: flex-start;
-      border-bottom-left-radius: 4px;
-    }
-
-    #input-area {
-      display: flex;
-      gap: 0.5rem;
-    }
-    #input-msg {
-      flex: 1;
-      padding: 10px 14px;
-      font-size: 1rem;
-      border-radius: 20px;
-      border: none;
-      outline: none;
-      box-shadow: 0 0 5px #f57c00aa;
-      transition: box-shadow 0.2s ease-in-out;
-    }
-    #input-msg:focus {
-      box-shadow: 0 0 8px #f57c00cc;
+    #inviteInput, #msgInput {
+      font-size: 0.9rem;
+      padding: 10px 12px;
     }
     button {
-      background: #f57c00;
-      border: none;
-      color: white;
-      padding: 10px 16px;
-      font-weight: 600;
-      border-radius: 20px;
-      cursor: pointer;
-      box-shadow: 0 3px 6px rgb(0 0 0 / 0.15);
-      transition: background-color 0.3s ease;
-      user-select: none;
+      font-size: 0.9rem;
+      padding: 10px 15px;
     }
-    button:hover {
-      background: #ef6c00;
-    }
-    #quitBtn {
-      background: #d84315;
-      margin-top: 0.5rem;
-    }
-    #quitBtn:hover {
-      background: #bf360c;
-    }
+  }
 
-    #notif {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #fff3e0cc;
-      padding: 10px 20px;
-      border-radius: 25px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      font-weight: 600;
-      color: #6d4c41;
-      display: none;
-      user-select: none;
-      z-index: 1000;
-    }
+    .message-sent {
+  background-color: #ffe082;
+  margin-left: auto;
+  color: #5d4037;
+  padding: 10px 15px;
+  border-radius: 18px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
 
-    /* MOBILE */
-    @media (max-width: 600px) {
-      body {
-        font-size: 1.1rem;
-        zoom: 1.1;
-      }
-      #messages {
-        padding: 8px;
-      }
-      #input-msg {
-        font-size: 1.1rem;
-      }
-      button {
-        padding: 12px 20px;
-        font-size: 1.1rem;
-      }
-    }
-  </style>
+.message-received {
+  background-color: #fff3e0;
+  color: #6d4c41;
+  padding: 10px 15px;
+  border-radius: 18px;
+  max-width: 70%;
+  word-wrap: break-word;
+  margin-right: auto;
+}
+</style>
 </head>
 <body>
-
-  <header>🥭 Mangochat - Tropical Chat</header>
-
   <main>
+    <h2>🍋 MangoChat</h2>
     <div id="notif"></div>
+    <div id="nameDisplay"></div>
+
+    <div id="inviteBox">
+      <input type="text" id="inviteInput" placeholder="Pseudo à inviter" />
+      <button id="inviteBtn">📨 Inviter</button>
+    </div>
 
     <div id="messages"></div>
 
-    <div id="input-area" style="display:none;">
-      <input type="text" id="input-msg" placeholder="Écris ton message..." autocomplete="off" />
-      <button id="sendBtn">Envoyer</button>
+    <div id="input-area">
+      <input type="text" id="msgInput" placeholder="Écris ton message" />
+      <button id="sendBtn">📤 Envoyer</button>
     </div>
 
-    <button id="quitBtn" style="display:none;">❌ Quitter la conversation</button>
+    <button id="quitBtn">❌ Quitter la conversation</button>
   </main>
 
-  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
   <script>
-    // Variables globales
-    let myCode = localStorage.getItem('myCode') || null;
-    let partner = null;
-    let isAccepted = false;
+    const myName = localStorage.getItem("myName") || prompt("Entre ton pseudo :").trim();
+localStorage.setItem("myName", myName);
+document.getElementById("nameDisplay").textContent = "👤 Ton pseudo : " + myName;
 
-    // Pusher config
-    const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu", authEndpoint: "/pusher/auth" });
-    let currentChannel = null;
+const pusher = new Pusher("21da0af69d3d1b97e425", {
+  cluster: "eu"
+});
 
-    // Demande ton pseudo au début si jamais pas dans localStorage
-    async function askPseudo() {
-      while (!myCode) {
-        const pseudo = prompt("Choisis ton pseudo (unique) :");
-        if (pseudo && pseudo.trim().length >= 3) {
-          myCode = pseudo.trim();
-          localStorage.setItem('myCode', myCode);
-          showNotification(`Bienvenue, ${myCode} !`);
-          break;
-        }
-      }
+let partner = null;
+let currentChannel = null;
+
+const notif = msg => {
+  const n = document.getElementById("notif");
+  n.textContent = msg;
+  n.style.display = "block";
+  setTimeout(() => n.style.display = "none", 5000);
+};
+
+const getChannelName = (a, b) => {
+  return "chat_" + [a, b].sort().join("_");
+};
+
+document.getElementById("inviteBtn").onclick = () => {
+  const to = document.getElementById("inviteInput").value.trim();
+  if (!to || to === myName) return alert("Pseudo invalide");
+
+  fetch("/invite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myName, to })
+  });
+
+  partner = to;
+  notif("📨 Invitation envoyée à " + to);
+};
+
+const subscribeToChat = () => {
+  const channelName = getChannelName(myName, partner);
+  currentChannel = pusher.subscribe(channelName);
+
+  currentChannel.bind("new-message", data => {
+    if (data.text === "__quit__") {
+      notif("🚪 L'autre utilisateur a quitté la conversation.");
+      cleanup();
+      return;
     }
-
-    // Afficher notification temporaire
-    function showNotification(text) {
-      const notif = document.getElementById("notif");
-      notif.innerText = text;
-      notif.style.display = "block";
-      setTimeout(() => {
-        notif.style.display = "none";
-      }, 4000);
+    // Affiche le message uniquement si c'est pas moi qui l'envoie (pour éviter doublons)
+    if (data.from !== myName) {
+      addMessage(data.from, data.text);
     }
+  });
 
-    // Affiche message dans #messages avec bulle gauche/droite
-    function addMessage(text, isMine) {
-      const div = document.createElement("div");
-      div.className = "message " + (isMine ? "mine" : "other");
-      div.innerText = text;
-      document.getElementById("messages").appendChild(div);
-      div.scrollIntoView({ behavior: "smooth" });
-    }
+  currentChannel.bind("chat-started", data => {
+    notif(data.message);
+  });
 
-    // Envoie un message
-    async function sendMessage() {
-      const input = document.getElementById("input-msg");
-      const text = input.value.trim();
-      if (!text || !partner || !isAccepted) return;
+  document.getElementById("input-area").style.display = "flex";
+  document.getElementById("quitBtn").style.display = "inline-block";
+};
 
-      addMessage(text, true);
+const addMessage = (sender, text) => {
+  const div = document.createElement("div");
+  div.textContent = `${sender} : ${text}`;
 
-      try {
-        await fetch("/message", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({from: myCode, to: partner, text})
-        });
-      } catch {
-        showNotification("Erreur lors de l'envoi !");
-      }
-      input.value = "";
-    }
+  // Ajoute une classe selon l'expéditeur pour différencier visuellement
+  if (sender === myName || sender === "Toi") {
+    div.classList.add("message-sent");
+  } else {
+    div.classList.add("message-received");
+  }
 
-    // Gérer réception de messages Pusher
-    function bindChatChannel(channelName) {
-      if (currentChannel) currentChannel.unsubscribe();
-      currentChannel = pusher.subscribe(channelName);
+  document.getElementById("messages").appendChild(div);
+  document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+};
 
-      currentChannel.bind("new-message", data => {
-        if (data.from === myCode) return; // Ignore tes propres messages
+document.getElementById("sendBtn").onclick = () => {
+  const text = document.getElementById("msgInput").value.trim();
+  if (!text || !partner) return;
 
-        addMessage(data.text, false);
-      });
+  // Affiche immédiatement le message côté expéditeur
+  addMessage("Toi", text);
 
-      currentChannel.bind("chat-started", data => {
-        showNotification(data.message || "Conversation commencée !");
-      });
+  fetch("/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myName, to: partner, text })
+  });
 
-      currentChannel.bind("user-left", data => {
-        showNotification(data.message || "L'autre utilisateur a quitté.");
-        partner = null;
-        isAccepted = false;
-        resetChatUI();
-      });
-    }
+  document.getElementById("msgInput").value = "";
+};
 
-    // Reset interface chat
-    function resetChatUI() {
-      document.getElementById("messages").innerHTML = "";
-      document.getElementById("input-area").style.display = "none";
-      document.getElementById("quitBtn").style.display = "none";
-    }
-
-    // Envoie invitation
-    async function sendInvite(to) {
-      if (to === myCode) {
-        showNotification("Tu ne peux pas t'inviter toi-même !");
-        return;
-      }
-      try {
-        await fetch("/invite", {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({from: myCode, to})
-        });
-        showNotification(`Invitation envoyée à ${to} !`);
-      } catch {
-        showNotification("Erreur lors de l'invitation !");
-      }
-    }
-
-    // Bind invitation channel
-    function bindInviteChannel() {
-      const inviteChannel = pusher.subscribe("invite_" + myCode);
-
-      inviteChannel.bind("chat-invite", data => {
-        const fromUser = data.from;
-        if (confirm(`📩 ${fromUser} veut discuter avec toi. Accepter ?`)) {
-          fetch("/accept", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({from: myCode, to: fromUser})
-          });
-
-          partner = fromUser;
-          isAccepted = true;
-          showNotification("Conversation acceptée !");
-          bindChatChannel(getChatChannel(myCode, partner));
-          document.getElementById("input-area").style.display = "flex";
-          document.getElementById("quitBtn").style.display = "inline-block";
-        } else {
-          showNotification("Invitation refusée.");
-        }
-      });
-
-      inviteChannel.bind("chat-accepted", data => {
-        if (data.from === partner) {
-          isAccepted = true;
-          showNotification("Conversation acceptée par " + partner);
-          bindChatChannel(getChatChannel(myCode, partner));
-          document.getElementById("input-area").style.display = "flex";
-          document.getElementById("quitBtn").style.display = "inline-block";
-        }
-      });
-    }
-
-    // Helper channel name (ordre alphabétique)
-    function getChatChannel(a, b) {
-      return "chat_" + [a, b].sort().join("_");
-    }
-
-    // Quitter la conversation
-    async function quitConversation() {
-      if (!partner) return;
-
-      await fetch("/message", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({from: myCode, to: partner, text: "__quit__"})
-      });
-
-      showNotification("❌ Tu as quitté la conversation.");
-
-      partner = null;
-      isAccepted = false;
-      resetChatUI();
-    }
-
-    // Gestion message spécial quitter
-    function handleSpecialMessages(data) {
-      if (data.text === "__quit__") {
-        showNotification("❌ L'utilisateur a quitté la conversation.");
-        partner = null;
-        isAccepted = false;
-        resetChatUI();
-        return true;
-      }
-      return false;
-    }
-
-    // Écoute message "new-message" pour gérer quitter et messages normaux
-    function extendedBindChatChannel(channelName) {
-      if (currentChannel) currentChannel.unsubscribe();
-      currentChannel = pusher.subscribe(channelName);
-
-      currentChannel.bind("new-message", data => {
-        if (data.from === myCode) return; // Ignore tes messages
-
-        if (handleSpecialMessages(data)) return;
-
-        addMessage(data.text, false);
-      });
-
-      currentChannel.bind("chat-started", data => {
-        showNotification(data.message || "Conversation commencée !");
-      });
-
-      currentChannel.bind("user-left", data => {
-        showNotification(data.message || "L'autre utilisateur a quitté.");
-        partner = null;
-        isAccepted = false;
-        resetChatUI();
-      });
-    }
-
-    // Événements
-    document.getElementById("sendBtn").onclick = sendMessage;
-    document.getElementById("input-msg").addEventListener("keydown", e => {
-      if (e.key === "Enter") sendMessage();
+// 🔔 Invitation reçue
+const inviteChannel = pusher.subscribe("invite_" + myName);
+inviteChannel.bind("chat-invite", data => {
+  if (confirm(`${data.from} veut discuter avec toi. Accepter ?`)) {
+    partner = data.from;
+    fetch("/accept", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myName, to: partner })
     });
-    document.getElementById("quitBtn").onclick = quitConversation;
+    subscribeToChat();
+  }
+});
 
-    // Initialisation
-    (async () => {
-      await askPseudo();
-      bindInviteChannel();
+// 🎉 Acceptation reçue
+inviteChannel.bind("chat-accepted", data => {
+  if (!partner) partner = data.from;
+  subscribeToChat();
+});
 
-      // Demande à qui tu veux parler
-      const toUser = prompt("À qui veux-tu envoyer une invitation ? (pseudo)");
-      if (!toUser || toUser.trim().length < 3) {
-        showNotification("Invitation annulée : pseudo invalide.");
-        return;
-      }
+// ❌ Quitter
+document.getElementById("quitBtn").onclick = () => {
+  fetch("/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
+  });
+  notif("🚪 Tu as quitté la conversation.");
+  cleanup();
+};
 
-      partner = toUser.trim();
-      await sendInvite(partner);
-    })();
+const cleanup = () => {
+  document.getElementById("messages").innerHTML = "";
+  document.getElementById("input-area").style.display = "none";
+  document.getElementById("quitBtn").style.display = "none";
+  partner = null;
+};
 
+// 🔄 Si on recharge la page
+window.addEventListener("beforeunload", () => {
+  if (partner) {
+    fetch("/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
+    });
+  }
+});
   </script>
 </body>
 </html>
