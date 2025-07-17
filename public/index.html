@@ -131,38 +131,14 @@
   const PUSHER_KEY = "21da0af69d3d1b97e425";
   const PUSHER_CLUSTER = "eu";
 
-  const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
-  localStorage.setItem("code", myCode);
+  const myCode = Math.floor(100000 + Math.random() * 900000).toString();
   document.getElementById("myCode").textContent = myCode;
 
-  let partner = localStorage.getItem("partner") || "";
-  let isAccepted = localStorage.getItem("accepted") === "true";
-  
-// Vérifie si la conversation est vraiment active
-if (isAccepted && partner) {
-  // Ne rejoint que si l'utilisateur est encore sur le site
-  fetch('/ping', {
-    method: 'POST',
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: myCode, to: partner })
-  }).then(res => {
-    if (res.ok) {
-      subscribeToChat(partner);
-      document.getElementById("input-area").style.display = "flex";
-    } else {
-      // Reset si l'autre est plus là
-      localStorage.removeItem("partner");
-      localStorage.removeItem("accepted");
-      localStorage.removeItem("messages");
-      partner = "";
-      isAccepted = false;
-    }
-  });
-}
-
+  let partner = "";
+  let isAccepted = false;
   let currentChannel = null;
   let invitationPending = false;
-  let messageHistory = JSON.parse(localStorage.getItem("messages") || "[]");
+  let messageHistory = [];
 
   const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
   const inviteChannel = pusher.subscribe("invite_" + myCode);
@@ -170,41 +146,30 @@ if (isAccepted && partner) {
   inviteChannel.bind("chat-invite", data => {
     if (isAccepted) return;
     window.inviteFrom = data.from;
-    showNotification(`${data.from} veut discuter avec toi. <button onclick=\"accept()\">Accepter</button>`);
+    showNotification(`${data.from} veut discuter avec toi. <button onclick="accept()">Accepter</button>`);
   });
 
   inviteChannel.bind("chat-accepted", data => {
     if (!isAccepted) {
       partner = data.from;
       isAccepted = true;
-      localStorage.setItem("partner", partner);
-      localStorage.setItem("accepted", "true");
       subscribeToChat(partner);
       showNotification("✅ Conversation acceptée !");
       document.getElementById("input-area").style.display = "flex";
-      invitationPending = false;
     } else {
       showNotification("✅ Conversation acceptée !");
-      invitationPending = false;
     }
   });
-
-  if (isAccepted && partner) {
-    subscribeToChat(partner);
-    document.getElementById("input-area").style.display = "flex";
-  }
 
   document.getElementById("partnerCode").addEventListener("change", function () {
     const code = this.value.trim();
     if (!code || code === myCode) return;
     partner = code;
-    localStorage.setItem("partner", partner);
     fetch('/invite', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
     }).then(() => {
-      invitationPending = true;
       showNotification("Invitation envoyée, en attente...");
     });
   });
@@ -212,8 +177,6 @@ if (isAccepted && partner) {
   function accept() {
     isAccepted = true;
     partner = window.inviteFrom;
-    localStorage.setItem("partner", partner);
-    localStorage.setItem("accepted", "true");
     fetch('/accept', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
@@ -222,7 +185,6 @@ if (isAccepted && partner) {
       subscribeToChat(partner);
       showNotification("✅ Conversation acceptée !");
       document.getElementById("input-area").style.display = "flex";
-      invitationPending = false;
     });
   }
 
@@ -238,9 +200,7 @@ if (isAccepted && partner) {
       showNotification(data.message);
       setTimeout(() => {
         document.getElementById("input-area").style.display = "none";
-        localStorage.removeItem("partner");
-        localStorage.removeItem("accepted");
-        localStorage.removeItem("messages");
+        messageHistory = [];
       }, 2000);
     });
     document.getElementById("messages").innerHTML = "";
@@ -266,7 +226,6 @@ if (isAccepted && partner) {
     document.getElementById("messages").appendChild(div);
     document.getElementById("messages").scrollTop = 9999;
     messageHistory.push({ text, me });
-    localStorage.setItem("messages", JSON.stringify(messageHistory));
   }
 
   function showNotification(msg) {
@@ -276,21 +235,28 @@ if (isAccepted && partner) {
   }
 
   function quit() {
+    if (!partner) return;
     fetch('/quit', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
     });
-    localStorage.removeItem("partner");
-    localStorage.removeItem("accepted");
-    localStorage.removeItem("messages");
     isAccepted = false;
     partner = "";
+    messageHistory = [];
     if (currentChannel) pusher.unsubscribe(currentChannel.name);
     document.getElementById("input-area").style.display = "none";
     showNotification("❌ Conversation quittée.");
   }
+
+  // Quitte la conversation automatiquement si la page se recharge
+  window.addEventListener("beforeunload", () => {
+    if (partner) {
+      navigator.sendBeacon("/quit", JSON.stringify({ from: myCode, to: partner }));
+    }
+  });
 </script>
+
 
 </body>
 </html>
