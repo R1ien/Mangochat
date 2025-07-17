@@ -1,194 +1,247 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, user-scalable=yes" />
-  <title>Chat moderne style WhatsApp</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
-  <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
-  <style>
-    /* Reset & Base */
-/* Styles communs */
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  max-width: 600px;
-  margin: 20px auto;
-  background: #f5f5f7;
-  color: #222;
-  padding: 0 10px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MangoChat 🥭</title>
+<style>
+  /* Reset basique */
+  * {
+    box-sizing: border-box;
+  }
 
-h2 {
-  text-align: center;
-  margin-bottom: 15px;
-  color: #333;
-}
-
-#myCode {
-  font-weight: 700;
-  color: #2c7be5;
-}
-
-#partnerCode {
-  width: 100%;
-  padding: 12px 15px;
-  border-radius: 25px;
-  border: 1px solid #ddd;
-  font-size: 16px;
-  margin-bottom: 10px;
-  box-sizing: border-box;
-  transition: border-color 0.3s ease;
-}
-
-#partnerCode:focus {
-  outline: none;
-  border-color: #2c7be5;
-  box-shadow: 0 0 8px rgba(44, 123, 229, 0.4);
-}
-
-#notif {
-  margin: 10px 0 20px 0;
-  padding: 12px 15px;
-  background: #fff3cd;
-  border: 1px solid #ffeeba;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #856404;
-  display: none;
-  word-break: break-word;
-}
-
-#messages {
-  height: 350px;
-  overflow-y: auto;
-  background: #fff;
-  padding: 15px;
-  border-radius: 15px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
-  border: 1px solid #ddd;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  scroll-behavior: smooth;
-}
-
-.message {
-  max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 20px;
-  font-size: 15px;
-  line-height: 1.3;
-  word-wrap: break-word;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
-  transition: background-color 0.3s ease;
-}
-
-.from-me {
-  background: #dcf8c6;
-  align-self: flex-end;
-  color: #222;
-}
-
-.from-them {
-  background: #ffffff;
-  border: 1px solid #ddd;
-  align-self: flex-start;
-  color: #222;
-}
-
-#input-area {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
-}
-
-#messageInput {
-  flex-grow: 1;
-  padding: 12px 15px;
-  font-size: 16px;
-  border-radius: 25px;
-  border: 1px solid #ddd;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
-
-#messageInput:focus {
-  border-color: #2c7be5;
-  box-shadow: 0 0 8px rgba(44, 123, 229, 0.4);
-}
-
-button {
-  background-color: #2c7be5;
-  border: none;
-  color: white;
-  padding: 12px 25px;
-  font-size: 16px;
-  border-radius: 25px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  box-shadow: 0 3px 8px rgba(44, 123, 229, 0.4);
-}
-
-button:hover {
-  background-color: #1a5fc1;
-}
-
-/* Styles spécifiques mobile */
-@media (max-width: 600px) {
   body {
-    padding: 10px;
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #fffae3, #ffe6b3);
+    color: #4a3c1a;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #ffb347; /* orange mangue */
+    color: #fff;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 2.4rem;
+    font-weight: 900;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+    user-select: none;
+    box-shadow: 0 3px 6px rgba(255,179,71,0.6);
+  }
+
+  header span.emoji {
+    margin-left: 10px;
+    font-size: 2.6rem;
+    animation: bounce 2.5s infinite ease-in-out;
+    display: inline-block;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  main {
+    flex-grow: 1;
+    max-width: 600px;
+    margin: 20px auto 30px;
+    background: #fff9e8;
+    border-radius: 25px;
+    box-shadow: 0 8px 20px rgba(255,179,71,0.4);
+    padding: 25px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Fond emojis mangue en repeating pattern */
+  main::before {
+    content: "🥭🍋🥭🍋🥭🍋🥭🍋🥭🍋";
+    font-size: 4rem;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    color: #fff3cdaa;
+    user-select: none;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    animation: emoji-slide 20s linear infinite;
+    filter: drop-shadow(0 0 3px #f7c457);
+  }
+
+  @keyframes emoji-slide {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+
+  h2 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #7a5700;
+    font-weight: 700;
+  }
+
+  #myCode {
+    color: #de8e00;
+  }
+
+  #partnerCode {
+    width: 100%;
+    padding: 12px 18px;
+    border-radius: 30px;
+    border: 2px solid #f3b200;
+    font-size: 17px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+  }
+
+  #partnerCode:focus {
+    outline: none;
+    border-color: #f7c23a;
+    box-shadow: 0 0 8px #f7c23a88;
+  }
+
+  #notif {
+    margin: 10px 0 20px 0;
+    padding: 14px 18px;
+    background: #fff3cd;
+    border: 2px solid #f7c23a;
+    border-radius: 15px;
+    font-size: 15px;
+    color: #7a5700;
+    display: none;
+    word-break: break-word;
   }
 
   #messages {
-    height: 300px;
-    border-radius: 12px;
-    padding: 12px;
+    height: 350px;
+    overflow-y: auto;
+    background: #fff9e8;
+    padding: 18px 22px;
+    border-radius: 20px;
+    box-shadow: inset 0 0 8px #ffd966aa;
+    border: 2px solid #f3b200;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
   }
 
-  #partnerCode, #messageInput {
-    font-size: 18px;
+  .message {
+    max-width: 70%;
+    padding: 12px 18px;
+    border-radius: 30px;
+    font-size: 16px;
+    line-height: 1.3;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px rgba(243,178,0,0.3);
+    transition: background-color 0.3s ease;
+  }
+
+  .from-me {
+    background: #ffedb7;
+    align-self: flex-end;
+    color: #6a4500;
+    font-weight: 600;
+  }
+
+  .from-them {
+    background: #fff3cd;
+    border: 2px solid #f3b200;
+    align-self: flex-start;
+    color: #6a4500;
+    font-weight: 600;
+  }
+
+  #input-area {
+    margin-top: 20px;
+    display: flex;
+    gap: 14px;
+  }
+
+  #messageInput {
+    flex-grow: 1;
     padding: 14px 20px;
+    font-size: 17px;
+    border-radius: 30px;
+    border: 2px solid #f3b200;
+    outline: none;
+    transition: border-color 0.3s ease;
+  }
+
+  #messageInput:focus {
+    border-color: #f7c23a;
+    box-shadow: 0 0 10px #f7c23aaa;
   }
 
   button {
-    padding: 14px 20px;
-    font-size: 18px;
+    background-color: #f3b200;
+    border: none;
+    color: #6a4500;
+    padding: 14px 26px;
+    font-size: 17px;
+    font-weight: 700;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 5px 15px #f3b200aa;
+    transition: background-color 0.3s ease;
+    user-select: none;
   }
 
-  /* Zoom pour le body mobile */
-  html, body {
-    touch-action: manipulation;
-    -webkit-text-size-adjust: 125%; /* zoom texte +25% */
-    -moz-text-size-adjust: 125%;
-    -ms-text-size-adjust: 125%;
-    text-size-adjust: 125%;
+  button:hover {
+    background-color: #f7c23a;
+    color: #4a3c1a;
   }
 
-  /* Assure que #notif soit visible sans overflow */
-  #notif {
-    font-size: 15px;
-    padding: 14px 18px;
+  /* Mobile tweaks */
+  @media (max-width: 600px) {
+    main {
+      margin: 15px 15px 25px;
+      padding: 20px 20px;
+    }
+
+    #messages {
+      height: 280px;
+      padding: 15px 18px;
+    }
+
+    #partnerCode, #messageInput {
+      font-size: 18px;
+      padding: 16px 22px;
+    }
+
+    button {
+      padding: 16px 26px;
+      font-size: 18px;
+    }
   }
-}
 </style>
 </head>
 <body>
 
+<header>
+  MangoChat <span class="emoji">🥭</span>
+</header>
+
+<main>
   <h2>Ton code : <span id="myCode"></span></h2>
   <input id="partnerCode" placeholder="Code de l'autre" autocomplete="off" />
   <div id="notif"></div>
 
   <div id="messages"></div>
-
-  <div id="input-area">
-    <input id="messageInput" placeholder="Écris ton message..." autocomplete="off" />
+  <div id="input-area" style="display:none; margin-top:10px;">
+    <input id="messageInput" placeholder="Tape ton message..." autocomplete="off" />
     <button onclick="send()">Envoyer</button>
   </div>
+</main>
 
 <script>
-  const PUSHER_KEY = "21da0af69d3d1b97e425";
+   const PUSHER_KEY = "21da0af69d3d1b97e425";
   const PUSHER_CLUSTER = "eu";
 
   const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
