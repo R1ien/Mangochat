@@ -249,25 +249,24 @@
       addMessage(data.text, false);
     });
 
-    currentChannel.bind('client-invite', data => {
-      if (data.to !== myPseudo) return;
-      if (isAccepted || partner) return;
+  currentChannel.bind('invite', data => {
+  if (data.to !== myPseudo) return;
+  if (isAccepted || partner) return;
 
-      showNotification(`Invitation reçue de ${data.from} ! Accepter ?`);
-
-      const accept = confirm(`Accepter la conversation avec ${data.from} ?`);
-      if (accept) {
-        partner = data.from;
-        isAccepted = true;
-        localStorage.setItem('partnerCode', partner);
-        showNotification(`Conversation acceptée avec ${partner}`);
-        document.getElementById('quitBtn').style.display = 'block';
-        subscribeToChat();
-      } else {
-        showNotification(`Invitation refusée.`);
-      }
-    });
+  showNotification(`Invitation reçue de ${data.from} ! Accepter ?`);
+  const accept = confirm(`Accepter la conversation avec ${data.from} ?`);
+  if (accept) {
+    partner = data.from;
+    isAccepted = true;
+    localStorage.setItem('partnerCode', partner);
+    showNotification(`Conversation acceptée avec ${partner}`);
+    document.getElementById('quitBtn').style.display = 'block';
+    subscribeToChat();
+  } else {
+    showNotification(`Invitation refusée.`);
   }
+});
+
 
   function resetConversation() {
     partner = null;
@@ -281,27 +280,31 @@
     askPseudo();
     subscribeToChat();
 
-    document.getElementById('sendInviteBtn').onclick = () => {
-      const target = document.getElementById('partnerPseudo').value.trim();
-      if (!target) {
-        alert('Entre un pseudo valide');
-        return;
-      }
-      if (target === myPseudo) {
-        alert('Tu ne peux pas t\'inviter toi-même !');
-        return;
-      }
+   document.getElementById('sendInviteBtn').onclick = () => {
+  const target = document.getElementById('partnerPseudo').value.trim();
+  if (!target) {
+    alert('Entre un pseudo valide');
+    return;
+  }
+  if (target === myPseudo) {
+    alert('Tu ne peux pas t\'inviter toi-même !');
+    return;
+  }
 
-      // Envoyer invitation via pusher client event
-      currentChannel.trigger('client-invite', {
-        from: myPseudo,
-        to: target
-      });
-
+  fetch('http://localhost:3000/send-invite', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({from: myPseudo, to: target}),
+  }).then(res => {
+    if (res.ok) {
+      showNotification(`Invitation envoyée à ${target}. En attente de réponse...`);
       partner = target;
       isAccepted = false;
-      showNotification(`Invitation envoyée à ${target}. En attente de réponse...`);
-    };
+    } else {
+      alert('Erreur lors de l\'envoi de l\'invitation');
+    }
+  }).catch(() => alert('Erreur réseau'));
+};
 
     document.getElementById('sendMsgBtn').onclick = () => {
       const msg = document.getElementById('messageInput').value.trim();
