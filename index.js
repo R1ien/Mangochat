@@ -34,8 +34,14 @@ app.post('/accept', (req, res) => {
   const fromChannel = "invite_" + from;
   const toChannel = "invite_" + to;
   const chatChannel = getChatChannel(from, to);
+
+  // Envoie à chacun l'acceptation
   pusher.trigger(fromChannel, "chat-accepted", { from: to });
   pusher.trigger(toChannel, "chat-accepted", { from });
+
+  // Envoie un message de début de conversation (ne ferme pas l’interface !)
+  pusher.trigger(chatChannel, "chat-started", { message: `✅ Conversation acceptée !` });
+
   res.sendStatus(200);
 });
 
@@ -44,4 +50,13 @@ app.post('/quit', (req, res) => {
   const channelName = getChatChannel(from, to);
   pusher.trigger(channelName, 'user-left', { message: `🚪 ${from} a quitté la conversation.` });
   res.sendStatus(200);
+});
+
+function getChatChannel(a, b) {
+  return "chat_" + [a, b].sort().join("_");
+}
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Serveur démarré sur le port", PORT);
 });
