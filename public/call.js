@@ -2,6 +2,18 @@ const myCode = localStorage.getItem("myCode");
 const partner = localStorage.getItem("partnerCode");
 
 let localStream;
+
+navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+  .then(stream => {
+    localStream = stream;
+    console.log("🎤 Micro autorisé");
+  })
+  .catch(err => {
+    console.error("Erreur d’accès au micro :", err);
+    alert("Autorise le micro pour pouvoir passer un appel !");
+  });
+
+let localStream;
 let peerConnection;
 const config = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
