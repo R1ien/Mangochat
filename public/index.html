@@ -149,6 +149,9 @@
   let currentChannel = null;
   let messageHistory = [];
 
+// Réinitialiser l'état à chaque chargement
+localStorage.removeItem("partner");
+  
   const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
   const inviteChannel = pusher.subscribe("invite_" + myCode);
 
