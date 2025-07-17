@@ -8,3 +8,5 @@ async function startMicro() {
     console.error("❌ Erreur micro :", err);
   }
 }
+
+startMicro()
