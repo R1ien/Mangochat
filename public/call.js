@@ -1,18 +1,28 @@
+let localStream = null;
+let isCalling = false;
+
+const callBtn = document.getElementById("callBtn"); // Ton bouton Appeler
 const notif = document.getElementById("notif");
-const localVideo = document.getElementById("localVideo");
 
-async function startLocalStream() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    notif.textContent = "Micro autorisé ✅";
-    notif.style.display = "block";
-    // Si tu veux afficher la vidéo (ici non), tu mets : localVideo.srcObject = stream;
-  } catch (err) {
-    notif.textContent = "Erreur micro : " + err.message;
-    notif.style.display = "block";
+callBtn.addEventListener("click", async () => {
+  if (isCalling) {
+    notif.textContent = "Tu es déjà en appel.";
+    return;
   }
-}
+  if (!partner) {
+    notif.textContent = "Pas de partenaire pour appeler.";
+    return;
+  }
 
-window.addEventListener("load", () => {
-  startLocalStream();
+  try {
+    notif.textContent = "Demande d'accès au micro...";
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    notif.textContent = "Micro capturé, lancement de l'appel...";
+    isCalling = true;
+
+    // Ici tu peux lancer ta logique WebRTC, créer PeerConnection, envoyer offer etc.
+
+  } catch (err) {
+    notif.textContent = "Micro non autorisé ou erreur : " + err.message;
+  }
 });
