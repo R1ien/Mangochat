@@ -1,19 +1,20 @@
-let localStream = null;
-let isCalling = false;
-let isMuted = false;
-
+const notifDiv = document.getElementById("notif");
 const callBtn = document.getElementById("callBtn");
-const micStatus = document.getElementById("micStatus");
 const callInterface = document.getElementById("callInterface");
 const muteBtn = document.getElementById("muteBtn");
 const hangupBtn = document.getElementById("hangupBtn");
-const notifDiv = document.getElementById("notif");
+const micStatus = document.getElementById("micStatus");
 
-// Variables globales
-let peerConnection = null; // objet WebRTC (à initialiser après acceptation)
-const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] }; // STUN basique
+let localStream = null;
+let peerConnection = null;
+let isCalling = false;
+let isMuted = false;
 
-// On étend la fonction callBtn pour envoyer une invitation d'appel au partenaire
+const config = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+};
+
+// Bouton appeler : envoie la demande d'appel
 callBtn.addEventListener("click", () => {
   if (!partner) {
     notifDiv.textContent = "❗ Pas de partenaire pour appeler.";
@@ -23,92 +24,84 @@ callBtn.addEventListener("click", () => {
     notifDiv.textContent = "❗ Tu es déjà en appel.";
     return;
   }
-  // Envoi demande d'appel via Pusher (signaling)
-  fetch("/call-request", {  // tu devras créer cette route serveur qui forward l'event Pusher
+  fetch("/call-request", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: myName, to: partner })
+    body: JSON.stringify({ from: myName, to: partner }),
   });
-  notifDiv.textContent = "📞 Invitation d'appel envoyée à " + partner;
+  notifDiv.textContent = `📞 Invitation d'appel envoyée à ${partner}`;
 });
 
-// Réception de demande d'appel
+// Réception d'une demande d'appel
 const callInviteChannel = pusher.subscribe("call-invite_" + myName);
-callInviteChannel.bind("call-request", async data => {
+callInviteChannel.bind("call-request", async (data) => {
   const accept = confirm(`${data.from} t'appelle. Accepter ?`);
   if (!accept) {
-    // Refuser = envoie signal de refus
-    fetch("/call-response", {
+    await fetch("/call-response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myName, to: data.from, accept: false })
+      body: JSON.stringify({ from: myName, to: data.from, accept: false }),
     });
     return;
   }
-  // Accepter
   notifDiv.textContent = "📞 Appel accepté, préparation...";
-  await startCall(true); // true = c’est le receveur qui démarre la connexion
-  // Envoie signal d’acceptation pour que l’appelant commence aussi
-  fetch("/call-response", {
+  await startCall(true);
+  await fetch("/call-response", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: myName, to: data.from, accept: true })
+    body: JSON.stringify({ from: myName, to: data.from, accept: true }),
   });
 });
 
-// Réception réponse à l’appel
+// Réception de la réponse à l'appel
 const callResponseChannel = pusher.subscribe("call-response_" + myName);
-callResponseChannel.bind("call-response", async data => {
+callResponseChannel.bind("call-response", async (data) => {
   if (!data.accept) {
-    notifDiv.textContent = "❌ Appel refusé par " + data.from;
+    notifDiv.textContent = `❌ Appel refusé par ${data.from}`;
     return;
   }
-  notifDiv.textContent = "📞 Appel accepté par " + data.from + ", préparation...";
-  await startCall(false); // false = appelant démarre la connexion
+  notifDiv.textContent = `📞 Appel accepté par ${data.from}, préparation...`;
+  await startCall(false);
 });
 
-// Fonction de démarrage de l’appel (simplifiée ici)
+// Fonction démarrant la capture micro + interface appel
 async function startCall(isReceiver) {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    updateMicStatus();
+    micStatus.textContent = "🎤 Micro : prêt";
     callInterface.style.display = "block";
     isCalling = true;
     isMuted = false;
 
-    // Création de la connexion WebRTC
     peerConnection = new RTCPeerConnection(config);
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
 
-    // Ici tu dois gérer icecandidate, offer, answer, etc avec ton serveur
-
-    // Pour test rapide, on écoute l'audio distant et on l’ajoute si jamais tu ajoutes la piste distante
-    peerConnection.ontrack = event => {
+    peerConnection.ontrack = (event) => {
       const remoteAudio = new Audio();
       remoteAudio.srcObject = event.streams[0];
       remoteAudio.play();
     };
 
-    // Pour la suite : exchange offer/answer via signaling serveur
-
+    // Ici, il faudra gérer icecandidate, offer/answer plus tard
   } catch (err) {
-    notifDiv.textContent = "❌ Erreur lors de l'accès au micro : " + err.message;
+    notifDiv.textContent = `❌ Erreur micro : ${err.message}`;
   }
 }
 
-// Boutons mute / raccro ne changent pas
+// Bouton mute/unmute
 muteBtn.onclick = () => {
   if (!localStream) return;
   isMuted = !isMuted;
-  localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+  localStream.getAudioTracks().forEach((t) => (t.enabled = !isMuted));
   muteBtn.textContent = isMuted ? "🔈 Unmute" : "🔇 Mute";
-  updateMicStatus();
+  micStatus.textContent = isMuted ? "🎤 Micro : coupé" : "🎤 Micro : actif";
 };
 
+// Bouton raccrocher
 hangupBtn.onclick = () => {
   if (!isCalling) return;
   if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
+    localStream.getTracks().forEach((t) => t.stop());
     localStream = null;
   }
   if (peerConnection) {
@@ -120,6 +113,4 @@ hangupBtn.onclick = () => {
   callInterface.style.display = "none";
   micStatus.textContent = "🎤 Micro : non prêt";
   notifDiv.textContent = "📞 Appel terminé.";
-
-  // Ici tu peux envoyer un signal à l'autre que t'as raccroché
 };
