@@ -129,141 +129,133 @@
 </div>
 
 <script>
-  const PUSHER_KEY = "21da0af69d3d1b97e425";
-  const PUSHER_CLUSTER = "eu";
+    const myCode = localStorage.getItem("myCode") || Math.random().toString(36).substr(2, 6);
+    localStorage.setItem("myCode", myCode);
+    document.getElementById("my-code").textContent = myCode;
 
-  const myCode = localStorage.getItem("fixed_code") || (function () {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    localStorage.setItem("fixed_code", code);
-    return code;
-  })();
-  document.getElementById("myCode").textContent = myCode;
-
-  let partner = "";
-  let isAccepted = false;
-  let currentChannel = null;
-
-  const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
-  const inviteChannel = pusher.subscribe("invite_" + myCode);
-
-  inviteChannel.bind("chat-invite", data => {
-    if (isAccepted) return;
-    window.inviteFrom = data.from;
-    showNotification(`${data.from} veut discuter avec toi. <button onclick="accept()">Accepter</button>`);
-  });
-
-  inviteChannel.bind("chat-accepted", data => {
-    partner = data.from;
-    isAccepted = true;
-    subscribeToChat(partner);
-    showUI();
-    showNotification("✅ Conversation acceptée !");
-  });
-
-  document.getElementById("partnerCode").addEventListener("change", function () {
-    const code = this.value.trim();
-    if (!code || code === myCode) return;
-    partner = code;
-    fetch('/invite', {
-      method: 'POST',
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myCode, to: partner })
-    }).then(() => {
-      showNotification("Invitation envoyée, en attente...");
+    const pusher = new Pusher("21da0af69d3d1b97e425", {
+      cluster: "eu"
     });
-  });
 
-  function accept() {
-    isAccepted = true;
-    partner = window.inviteFrom;
-    fetch('/accept', {
-      method: 'POST',
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myCode, to: partner })
-    }).then(() => {
+    let partner = null;
+    let currentChannel = null;
+    let isAccepted = false;
+    let lastMessageId = null;
+
+    const inviteChannel = pusher.subscribe("invite_" + myCode);
+    inviteChannel.bind("chat-invite", data => {
+      if (!partner) {
+        partner = data.from;
+        showNotification(`💬 Invitation de ${partner}`);
+        const accept = confirm(`Accepter l'invitation de ${partner} ?`);
+        if (accept) {
+          fetch("/accept", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ from: myCode, to: partner })
+          });
+          subscribeToChat(partner);
+        } else {
+          partner = null;
+        }
+      }
+    });
+
+    inviteChannel.bind("chat-accepted", data => {
+      partner = data.from;
+      isAccepted = true;
       subscribeToChat(partner);
-      showUI();
-      showNotification("✅ Conversation acceptée !");
-    });
-  }
-
-  function subscribeToChat(other) {
-    if (currentChannel) pusher.unsubscribe(currentChannel.name);
-    const chName = "chat_" + [myCode, other].sort().join("_");
-    currentChannel = pusher.subscribe(chName);
-
-    currentChannel.bind("new-message", data => {
-      if (!isAccepted) return;
-      if (data.from === myCode) return;
-      addMessage(data.text, false);
     });
 
-    currentChannel.bind("user-left", data => {
-      showNotification(data.message);
-      isAccepted = false;
-      setTimeout(hideUI, 5000);
-    });
+    function subscribeToChat(other) {
+      const chName = "chat_" + [myCode, other].sort().join("_");
+      if (currentChannel && currentChannel.name === chName) return;
 
-    document.getElementById("messages").innerHTML = "";
-  }
+      if (currentChannel) pusher.unsubscribe(currentChannel.name);
+      currentChannel = pusher.subscribe(chName);
 
- function send() {
-  const input = document.getElementById("message-input");
-  const text = input.value.trim();
-  if (!text || !partner) return;
+      currentChannel.bind("new-message", data => {
+        if (data.from === myCode) return;
+        if (data.id && data.id === lastMessageId) return; // éviter les doublons
+        lastMessageId = data.id;
+        addMessage(data.text, false);
+      });
 
-  fetch("/message", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: myCode,
-      to: partner,
-      text,
-      id: Date.now().toString()
-    })
-  });
+      currentChannel.bind("chat-started", data => {
+        showNotification(data.message);
+        document.getElementById("input-area").style.display = "flex";
+        document.getElementById("messages").style.display = "block";
+      });
 
-  input.value = "";
-}
+      currentChannel.bind("user-left", data => {
+        showNotification(data.message);
+        setTimeout(() => {
+          document.getElementById("input-area").style.display = "none";
+          document.getElementById("messages").style.display = "none";
+          document.getElementById("messages").innerHTML = "";
+          partner = null;
+        }, 5000);
+      });
 
-  function addMessage(text, me) {
-    const div = document.createElement("div");
-    div.className = "message " + (me ? "from-me" : "from-them");
-    div.textContent = text;
-    document.getElementById("messages").appendChild(div);
-    document.getElementById("messages").scrollTop = 9999;
-  }
+      document.getElementById("messages").style.display = "block";
+      document.getElementById("input-area").style.display = "flex";
+      document.getElementById("messages").innerHTML = "";
+    }
 
-  function showNotification(msg) {
-    const notif = document.getElementById("notif");
-    notif.innerHTML = msg;
-    notif.style.display = "block";
-  }
+    function sendInvite() {
+      const to = document.getElementById("code-input").value.trim();
+      if (!to) return;
+      partner = to;
+      fetch("/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: myCode, to })
+      });
+      showNotification("📩 Invitation envoyée à " + to);
+    }
 
-  function hideUI() {
-    document.getElementById("input-area").style.display = "none";
-    document.getElementById("messages").style.display = "none";
-  }
+    function sendMessage() {
+      const input = document.getElementById("message-input");
+      const text = input.value.trim();
+      if (!text || !partner) return;
+      addMessage(text, true);
+      fetch("/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: myCode, to: partner, text, id: Date.now().toString() })
+      });
+      input.value = "";
+    }
 
-  function showUI() {
-    document.getElementById("input-area").style.display = "flex";
-    document.getElementById("messages").style.display = "block";
-  }
+    function quitChat() {
+      if (!partner) return;
+      fetch("/quit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: myCode, to: partner })
+      });
+      showNotification("🚪 Tu as quitté la conversation");
+      document.getElementById("input-area").style.display = "none";
+      document.getElementById("messages").style.display = "none";
+      document.getElementById("messages").innerHTML = "";
+      partner = null;
+    }
 
-  function quit() {
-    if (!partner) return;
-    fetch('/quit', {
-      method: 'POST',
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from: myCode, to: partner })
-    });
-    isAccepted = false;
-    partner = "";
-    if (currentChannel) pusher.unsubscribe(currentChannel.name);
-    showNotification("❌ Conversation quittée.");
-    setTimeout(hideUI, 5000);
-  }
-</script>
+    function addMessage(text, mine) {
+      const div = document.createElement("div");
+      div.textContent = (mine ? "Toi" : "Lui") + " : " + text;
+      div.className = mine ? "msg mine" : "msg other";
+      document.getElementById("messages").appendChild(div);
+      document.getElementById("messages").scrollTop = 9999;
+    }
+
+    function showNotification(msg) {
+      const n = document.getElementById("notifications");
+      n.textContent = msg;
+      n.style.display = "block";
+      setTimeout(() => n.style.display = "none", 3000);
+    }
+  </script>
 
 
 </body>
