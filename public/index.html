@@ -1,71 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3, user-scalable=yes" />
   <title>Chat style WhatsApp</title>
   <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
-    body { font-family: Arial; max-width: 600px; margin: auto; }
-    #messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
-    .message { padding: 5px 10px; margin: 5px; border-radius: 15px; max-width: 70%; }
-    .from-me { background: #DCF8C6; margin-left: auto; }
-    .from-them { background: #fff; border: 1px solid #ccc; margin-right: auto; }
-    #notif { margin: 10px 0; padding: 10px; background: #fffae6; display: none; border: 1px solid #ffd700; }
-  </style>
-
-  <style>
-  /* Styles pour mobile seulement */
-  @media (max-width: 600px) {
     body {
-      max-width: 100%;
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: auto;
       padding: 10px;
-      font-size: 16px;
+      font-size: 14px;
     }
     #messages {
-      height: 400px; /* un peu plus haut sur mobile */
-      font-size: 16px;
-      padding: 8px;
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
     }
     .message {
-      max-width: 90%;
-      font-size: 16px;
-      padding: 10px 15px;
-      margin: 6px 0;
+      padding: 5px 10px;
+      margin: 5px;
+      border-radius: 15px;
+      max-width: 70%;
+      word-wrap: break-word;
     }
-    #partnerCode, #messageInput {
-      font-size: 16px;
-      padding: 12px;
-      width: 100% !important;
-      box-sizing: border-box;
+    .from-me {
+      background: #DCF8C6;
+      margin-left: auto;
     }
-    #input-area {
-      display: flex !important;
-      gap: 10px;
-    }
-    #input-area input {
-      flex-grow: 1;
-    }
-    button {
-      font-size: 16px;
-      padding: 10px 15px;
+    .from-them {
+      background: #fff;
+      border: 1px solid #ccc;
+      margin-right: auto;
     }
     #notif {
-      font-size: 16px;
-      padding: 12px;
+      margin: 10px 0;
+      padding: 10px;
+      background: #fffae6;
+      display: none;
+      border: 1px solid #ffd700;
+      font-size: 14px;
     }
-  }
-</style>
 
+    /* Styles spécifiques mobile (max 600px) */
+    @media (max-width: 600px) {
+      body {
+        max-width: 100%;
+        font-size: 18px;
+        padding: 15px;
+      }
+      #messages {
+        height: 400px;
+        font-size: 18px;
+        padding: 12px;
+      }
+      .message {
+        max-width: 90%;
+        font-size: 18px;
+        padding: 12px 18px;
+        margin: 8px 0;
+      }
+      #partnerCode, #messageInput {
+        font-size: 18px;
+        padding: 14px;
+        width: 100% !important;
+        box-sizing: border-box;
+      }
+      #input-area {
+        display: flex !important;
+        gap: 12px;
+        margin-top: 10px;
+      }
+      #input-area input {
+        flex-grow: 1;
+      }
+      button {
+        font-size: 18px;
+        padding: 12px 18px;
+        cursor: pointer;
+      }
+      #notif {
+        font-size: 18px;
+        padding: 14px;
+      }
+    }
+  </style>
 </head>
 <body>
 
 <h2>Ton code : <span id="myCode"></span></h2>
-<input id="partnerCode" placeholder="Code de l'autre" style="width:100%; padding:8px;" />
+<input id="partnerCode" placeholder="Code de l'autre" autocomplete="off" />
 <div id="notif"></div>
 
 <div id="messages"></div>
 <div id="input-area" style="display:none; margin-top:10px;">
-  <input id="messageInput" placeholder="Message..." style="width:80%; padding:10px;" />
+  <input id="messageInput" placeholder="Message..." autocomplete="off" />
   <button onclick="send()">Envoyer</button>
 </div>
 
@@ -93,18 +124,13 @@
   });
 
   inviteChannel.bind("chat-accepted", data => {
-    if (!isAccepted) {
-      partner = data.from;
-      isAccepted = true;
-      subscribeToChat(partner);
-      showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "block";
-      invitationPending = false;
-    } else {
-      // Supprimer l'invitation chez l'envoyeur aussi
-      showNotification("✅ Conversation acceptée !");
-      invitationPending = false;
-    }
+    if (isAccepted) return;
+    partner = data.from;
+    isAccepted = true;
+    subscribeToChat(partner);
+    showNotification("✅ Conversation acceptée !");
+    document.getElementById("input-area").style.display = "flex";
+    invitationPending = false;
   });
 
   document.getElementById("partnerCode").addEventListener("change", function () {
@@ -131,7 +157,7 @@
     }).then(() => {
       subscribeToChat(partner);
       showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "block";
+      document.getElementById("input-area").style.display = "flex";
       invitationPending = false;
     });
   }
@@ -141,7 +167,7 @@
     const chName = "chat_" + [myCode, other].sort().join("_");
     currentChannel = pusher.subscribe(chName);
     currentChannel.bind("new-message", data => {
-      if (data.from === myCode) return; // ignore les messages venant de soi
+      if (data.from === myCode) return; // Pas de doublon côté envoyeur
       addMessage(data.text, false);
     });
     document.getElementById("messages").innerHTML = "";
@@ -150,12 +176,12 @@
   function send() {
     const text = document.getElementById("messageInput").value.trim();
     if (!text || !partner || !isAccepted) return;
+    addMessage(text, true);
     fetch('/message', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner, text })
     });
-    addMessage(text, true); // Affiche seulement une fois côté sender
     document.getElementById("messageInput").value = "";
   }
 
