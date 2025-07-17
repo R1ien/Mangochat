@@ -1,9 +1,73 @@
+// ✅ Backend index.js
+
+const express = require('express');
+const app = express();
+const Pusher = require('pusher');
+const cors = require('cors');
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+const pusher = new Pusher({
+  appId: "2023592",
+  key: "21da0af69d3d1b97e425",
+  secret: "3de0052ed5c986f11bed",
+  cluster: "eu",
+  useTLS: true
+});
+
+app.post('/message', (req, res) => {
+  const { from, to, text } = req.body;
+  const channelName = getChatChannel(from, to);
+  pusher.trigger(channelName, 'new-message', { from, text });
+  res.sendStatus(200);
+});
+
+app.post('/invite', (req, res) => {
+  const { from, to } = req.body;
+  const channel = "invite_" + to;
+  pusher.trigger(channel, "chat-invite", { from });
+  res.sendStatus(200);
+});
+
+app.post('/accept', (req, res) => {
+  const { from, to } = req.body;
+  const fromChannel = "invite_" + from;
+  const toChannel = "invite_" + to;
+  const chatChannel = getChatChannel(from, to);
+  pusher.trigger(fromChannel, "chat-accepted", { from: to });
+  pusher.trigger(toChannel, "chat-accepted", { from });
+  pusher.trigger(chatChannel, "user-left", { message: `✅ Conversation acceptée !` });
+  res.sendStatus(200);
+});
+
+app.post('/quit', (req, res) => {
+  const { from, to } = req.body;
+  const channelName = getChatChannel(from, to);
+  pusher.trigger(channelName, 'user-left', { message: `🚪 ${from} a quitté la conversation.` });
+  res.sendStatus(200);
+});
+
+function getChatChannel(a, b) {
+  return "chat_" + [a, b].sort().join("_");
+}
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Serveur démarré sur le port", PORT);
+});
+
+
+// ✅ Frontend index.html
+
 <!DOCTYPE html>
-<html lang="fr">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🥭 MangoChat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1">
+  <title>MangoChat 🥭</title>
+  <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
@@ -119,167 +183,148 @@
       }
     }
   </style>
-
-  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
 </head>
 <body>
-  <h2>Ton code : <span id="my-code"></span></h2>
 
-  <div id="invite-section">
-    <input id="code-input" placeholder="Code de ton ami" maxlength="10" />
-    <button onclick="sendInvite()">Inviter</button>
-  </div>
+<h2>MangoChat 🥭 - Ton code : <span id="myCode"></span></h2>
+<input id="partnerCode" placeholder="Code de l'autre" />
+<div id="notif"></div>
+<div id="messages" style="display: none;"></div>
+<div id="input-area" style="display: none;">
+  <input id="messageInput" placeholder="Message..." />
+  <button onclick="send()">Envoyer</button>
+  <button onclick="quit()" style="background:red;color:white;">Quitter</button>
+</div>
 
-  <div id="notif"></div>
+<script>
+  const PUSHER_KEY = "21da0af69d3d1b97e425";
+  const PUSHER_CLUSTER = "eu";
 
-  <div id="messages"></div>
+  const myCode = localStorage.getItem("fixed_code") || (function () {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    localStorage.setItem("fixed_code", code);
+    return code;
+  })();
+  document.getElementById("myCode").textContent = myCode;
 
-  <div id="input-area">
-    <input id="message-input" placeholder="Écris ton message..." />
-    <button onclick="sendMessage()">Envoyer</button>
-    <button onclick="quitChat()" id="quit-btn">Quitter</button>
-  </div>
+  let partner = "";
+  let isAccepted = false;
+  let currentChannel = null;
 
-  <script>
-    const myCode = localStorage.getItem("myCode") || Math.random().toString(36).substr(2, 6);
-    localStorage.setItem("myCode", myCode);
-    document.getElementById("my-code").textContent = myCode;
+  const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+  const inviteChannel = pusher.subscribe("invite_" + myCode);
 
-    const pusher = new Pusher("21da0af69d3d1b97e425", { cluster: "eu" });
+  inviteChannel.bind("chat-invite", data => {
+    if (isAccepted) return;
+    window.inviteFrom = data.from;
+    showNotification(`${data.from} veut discuter avec toi. <button onclick=\"accept()\">Accepter</button>`);
+  });
 
-    let partner = null;
-    let currentChannel = null;
-    let isChatStarted = false;
+  inviteChannel.bind("chat-accepted", data => {
+    partner = data.from;
+    isAccepted = true;
+    subscribeToChat(partner);
+    showNotification("✅ Conversation acceptée !");
+    document.getElementById("input-area").style.display = "flex";
+    document.getElementById("messages").style.display = "block";
+  });
 
-    const inviteChannel = pusher.subscribe("invite_" + myCode);
-
-    inviteChannel.bind("chat-invite", data => {
-      if (!partner) {
-        partner = data.from;
-        showNotification(`💬 Invitation de ${partner}`);
-        const accept = confirm(`Accepter l'invitation de ${partner} ?`);
-        if (accept) {
-          fetch("/accept", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ from: myCode, to: partner })
-          });
-          subscribeToChat(partner);
-        } else {
-          partner = null;
-        }
-      }
+  document.getElementById("partnerCode").addEventListener("change", function () {
+    const code = this.value.trim();
+    if (!code || code === myCode) return;
+    partner = code;
+    fetch('/invite', {
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner })
+    }).then(() => {
+      showNotification("Invitation envoyée, en attente...");
     });
+  });
 
-    inviteChannel.bind("chat-accepted", data => {
-      if (!partner) {
-        partner = data.from;
-        subscribeToChat(partner);
-      }
-    });
-
-    function subscribeToChat(other) {
-      const chName = "chat_" + [myCode, other].sort().join("_");
-      if (currentChannel && currentChannel.name === chName) return;
-
-      if (currentChannel) pusher.unsubscribe(currentChannel.name);
-      currentChannel = pusher.subscribe(chName);
-
-      currentChannel.bind("new-message", data => {
-        if (data.from !== myCode) {
-          addMessage(data.text, false);
-        }
-      });
-
-      currentChannel.bind("chat-started", data => {
-        isChatStarted = true;
-        showNotification(data.message);
-        document.getElementById("input-area").style.display = "flex";
-        document.getElementById("messages").style.display = "block";
-      });
-
-      currentChannel.bind("user-left", data => {
-        showNotification(data.message);
-        setTimeout(() => {
-          isChatStarted = false;
-          hideChatUI();
-          partner = null;
-        }, 5000);
-      });
-
-      document.getElementById("messages").innerHTML = "";
+  function accept() {
+    isAccepted = true;
+    partner = window.inviteFrom;
+    fetch('/accept', {
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner })
+    }).then(() => {
+      subscribeToChat(partner);
+      showNotification("✅ Conversation acceptée !");
       document.getElementById("input-area").style.display = "flex";
       document.getElementById("messages").style.display = "block";
-    }
-
-    function sendInvite() {
-      const to = document.getElementById("code-input").value.trim();
-      if (!to) return;
-      partner = to;
-      fetch("/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myCode, to })
-      });
-      showNotification("📩 Invitation envoyée à " + to);
-    }
-
-    function sendMessage() {
-      const input = document.getElementById("message-input");
-      const text = input.value.trim();
-      if (!text || !partner) return;
-      addMessage(text, true);
-      fetch("/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myCode, to: partner, text })
-      });
-      input.value = "";
-    }
-
-    function quitChat() {
-      if (!partner) return;
-      fetch("/quit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myCode, to: partner })
-      });
-      showNotification("🚪 Tu as quitté la conversation");
-      setTimeout(() => {
-        isChatStarted = false;
-        hideChatUI();
-        partner = null;
-      }, 5000);
-    }
-
-    function addMessage(text, mine) {
-      const div = document.createElement("div");
-      div.textContent = (mine ? "Toi" : "Lui") + " : " + text;
-      div.className = mine ? "message from-me" : "message from-them";
-      document.getElementById("messages").appendChild(div);
-      document.getElementById("messages").scrollTop = 9999;
-    }
-
-    function showNotification(msg) {
-      const n = document.getElementById("notif");
-      n.textContent = msg;
-      n.style.display = "block";
-      setTimeout(() => {
-        n.style.display = "none";
-      }, 3000);
-    }
-
-    function hideChatUI() {
-      document.getElementById("input-area").style.display = "none";
-      document.getElementById("messages").style.display = "none";
-      document.getElementById("messages").innerHTML = "";
-    }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      if (!partner || !isChatStarted) {
-        hideChatUI();
-      }
     });
-  </script>
+  }
+
+let currentChannel = null;
+
+function subscribeToChat(channelName) {
+  if (currentChannel) {
+    currentChannel.unbind_all();
+    pusher.unsubscribe(currentChannel.name);
+  }
+  
+  currentChannel = pusher.subscribe(channelName);
+
+  currentChannel.bind('new-message', data => {
+    addMessageToChat(data.from, data.text);
+  });
+
+  currentChannel.bind('chat-started', data => {
+    showNotification(data.message);
+  });
+
+  currentChannel.bind('user-left', data => {
+    showNotification(data.message);
+    hideChatUIAfterDelay();
+  });
+}
+
+  function send() {
+    const text = document.getElementById("messageInput").value.trim();
+    if (!text || !partner || !isAccepted) return;
+    fetch('/message', {
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner, text })
+    });
+    addMessage(text, true);
+    document.getElementById("messageInput").value = "";
+  }
+
+  function addMessage(text, me) {
+    const div = document.createElement("div");
+    div.className = "message " + (me ? "from-me" : "from-them");
+    div.textContent = text;
+    document.getElementById("messages").appendChild(div);
+    document.getElementById("messages").scrollTop = 9999;
+  }
+
+  function showNotification(msg) {
+    const notif = document.getElementById("notif");
+    notif.innerHTML = msg;
+    notif.style.display = "block";
+  }
+
+  function quit() {
+    if (!partner) return;
+    fetch('/quit', {
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner })
+    });
+    isAccepted = false;
+    partner = "";
+    if (currentChannel) pusher.unsubscribe(currentChannel.name);
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("messages").style.display = "none";
+    showNotification("❌ Conversation quittée.");
+    setTimeout(() => {
+      document.getElementById("notif").style.display = "none";
+    }, 5000);
+  }
+</script>
+
 </body>
 </html>
