@@ -44,34 +44,35 @@
     50% { transform: translateY(-10px); }
   }
 
-  main {
-    flex-grow: 1;
-    max-width: 600px;
-    margin: 20px auto 30px;
-    background: #fff9e8;
-    border-radius: 25px;
-    box-shadow: 0 8px 20px rgba(255,179,71,0.4);
-    padding: 25px 30px;
-    position: relative;
-    overflow: hidden;
-  }
+main {
+  position: relative; /* important pour que ::before soit relatif à main */
+  flex-grow: 1;
+  max-width: 600px;
+  margin: 20px auto 30px;
+  background: #fff9e8;
+  border-radius: 25px;
+  box-shadow: 0 8px 20px rgba(255,179,71,0.4);
+  padding: 25px 30px;
+  overflow: hidden;
+  z-index: 0; /* pour que les enfants soient devant */
+}
 
-  /* Fond emojis mangue en repeating pattern */
-  main::before {
-    content: "🥭🍋🥭🍋🥭🍋🥭🍋🥭🍋";
-    font-size: 4rem;
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    color: #fff3cdaa;
-    user-select: none;
-    pointer-events: none;
-    white-space: nowrap;
-    overflow: hidden;
-    animation: emoji-slide 20s linear infinite;
-    filter: drop-shadow(0 0 3px #f7c457);
-  }
+main::before {
+  content: "🥭🍋🥭🍋🥭🍋🥭🍋🥭🍋";
+  font-size: 4rem;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  color: #fff3cdaa;
+  user-select: none;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  animation: emoji-slide 20s linear infinite;
+  filter: drop-shadow(0 0 3px #f7c457);
+  z-index: -1; /* mets bien le fond derrière */
+}
 
   @keyframes emoji-slide {
     0% { transform: translateX(0); }
