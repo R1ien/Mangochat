@@ -193,26 +193,35 @@
   }
 
   function subscribeToChat(other) {
-    if (currentChannel) pusher.unsubscribe(currentChannel.name);
-    const chName = "chat_" + [myCode, other].sort().join("_");
-    currentChannel = pusher.subscribe(chName);
+  const chName = "chat_" + [myCode, other].sort().join("_");
 
-    currentChannel.bind("new-message", data => {
-      if (!isAccepted) return;
-      if (data.from === myCode) return;
-      addMessage(data.text, false);
-    });
+  // Si déjà abonné à ce channel, on ne refait rien
+  if (currentChannel && currentChannel.name === chName) return;
 
-    currentChannel.bind("user-left", data => {
-      showNotification(data.message);
-      isAccepted = false;
-      setTimeout(hideUI, 5000);
-    });
+  if (currentChannel) pusher.unsubscribe(currentChannel.name);
+  currentChannel = pusher.subscribe(chName);
 
-    currentChannel.bind("chat-started", data => {
-  showNotification(data.message);
-  // Ne pas fermer la conversation ici, juste afficher le message
-});
+  currentChannel.bind("new-message", data => {
+    if (data.from === myCode) return;
+    addMessage(data.text, false);
+  });
+
+  currentChannel.bind("chat-started", data => {
+    showNotification(data.message);
+    document.getElementById("input-area").style.display = "flex";
+    document.getElementById("messages").style.display = "block";
+  });
+
+  currentChannel.bind("user-left", data => {
+    showNotification(data.message);
+    setTimeout(() => {
+      document.getElementById("input-area").style.display = "none";
+      document.getElementById("messages").style.display = "none";
+    }, 5000);
+  });
+
+  document.getElementById("messages").innerHTML = "";
+}
 
     document.getElementById("messages").innerHTML = "";
   }
