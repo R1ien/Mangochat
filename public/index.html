@@ -70,8 +70,8 @@
     #input-area {
       display: none;
       margin-top: 10px;
-      display: flex;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     input, button {
@@ -126,8 +126,8 @@
 <h2>MangoChat 🥭 - Ton code : <span id="myCode"></span></h2>
 <input id="partnerCode" placeholder="Code de l'autre" />
 <div id="notif"></div>
-<div id="messages"></div>
-<div id="input-area">
+<div id="messages" style="display: none;"></div>
+<div id="input-area" style="display: none;">
   <input id="messageInput" placeholder="Message..." />
   <button onclick="send()">Envoyer</button>
   <button onclick="quit()" style="background:red;color:white;">Quitter</button>
@@ -147,11 +147,7 @@
   let partner = "";
   let isAccepted = false;
   let currentChannel = null;
-  let messageHistory = [];
 
-// Réinitialiser l'état à chaque chargement
-localStorage.removeItem("partner");
-  
   const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
   const inviteChannel = pusher.subscribe("invite_" + myCode);
 
@@ -211,6 +207,8 @@ localStorage.removeItem("partner");
       setTimeout(() => {
         document.getElementById("input-area").style.display = "none";
         document.getElementById("messages").style.display = "none";
+        partner = "";
+        isAccepted = false;
       }, 5000);
     });
     document.getElementById("messages").innerHTML = "";
