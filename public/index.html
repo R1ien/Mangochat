@@ -2,41 +2,149 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MangoChat 🍋</title>
   <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(120deg, #ffefba, #ffffff);
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #fceabb, #f8b500);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    main {
+      background: white;
+      width: 100%;
+      max-width: 500px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      overflow: hidden;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    #nameDisplay {
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    #inviteBox {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #inviteInput {
+      flex: 1;
       padding: 10px;
-      max-width: 600px;
-      margin: auto;
-    }
-    #messages {
+      border-radius: 10px;
       border: 1px solid #ccc;
-      height: 250px;
-      overflow-y: auto;
-      padding: 5px;
-      margin-top: 10px;
-      background-color: #fffbe6;
     }
+
+    #inviteBtn {
+      padding: 10px 15px;
+      border-radius: 10px;
+      border: none;
+      background-color: #f8b500;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    #inviteBtn:hover {
+      background-color: #e0a100;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      background: #fffdf5;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      max-width: 75%;
+      padding: 10px 15px;
+      border-radius: 15px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .from-me {
+      background-color: #f8b500;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 0;
+      margin-left: auto;
+    }
+
+    .from-them {
+      background-color: #eee;
+      color: #333;
+      align-self: flex-start;
+      border-bottom-left-radius: 0;
+    }
+
     #input-area {
       display: none;
-      margin-top: 10px;
+      display: flex;
+      gap: 10px;
     }
-    input, button {
+
+    #msgInput {
+      flex: 1;
       padding: 10px;
-      font-size: 16px;
-      margin: 5px 0;
+      border-radius: 10px;
+      border: 1px solid #ccc;
     }
+
+    #sendBtn, #quitBtn {
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      background-color: #f8b500;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
     #quitBtn {
-      display: none;
       margin-top: 10px;
+      width: 100%;
+      display: none;
     }
+
+    #sendBtn:hover, #quitBtn:hover {
+      background-color: #e0a100;
+    }
+
     #notif {
+      text-align: center;
+      margin-bottom: 10px;
       color: green;
-      margin: 10px 0;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -48,14 +156,14 @@
 
     <div id="inviteBox">
       <input type="text" id="inviteInput" placeholder="Pseudo à inviter" />
-      <button id="inviteBtn">📨 Inviter</button>
+      <button id="inviteBtn">📨</button>
     </div>
 
     <div id="messages"></div>
 
     <div id="input-area">
-      <input type="text" id="msgInput" placeholder="Écris ton message" />
-      <button id="sendBtn">📤 Envoyer</button>
+      <input type="text" id="msgInput" placeholder="Ton message" />
+      <button id="sendBtn">📤</button>
     </div>
 
     <button id="quitBtn">❌ Quitter la conversation</button>
@@ -108,20 +216,21 @@
           cleanup();
           return;
         }
-        addMessage(data.from === myName ? "Toi" : data.from, data.text);
+        addMessage(data.from === myName, data.text);
       });
 
       currentChannel.bind("chat-started", data => {
         notif(data.message);
       });
 
-      document.getElementById("input-area").style.display = "block";
+      document.getElementById("input-area").style.display = "flex";
       document.getElementById("quitBtn").style.display = "block";
     };
 
-    const addMessage = (sender, text) => {
+    const addMessage = (isMe, text) => {
       const div = document.createElement("div");
-      div.textContent = `${sender} : ${text}`;
+      div.className = "message " + (isMe ? "from-me" : "from-them");
+      div.textContent = text;
       document.getElementById("messages").appendChild(div);
       document.getElementById("messages").scrollTop = 99999;
     };
@@ -137,7 +246,6 @@
       document.getElementById("msgInput").value = "";
     };
 
-    // 🔔 Invitation reçue
     const inviteChannel = pusher.subscribe("invite_" + myName);
     inviteChannel.bind("chat-invite", data => {
       if (confirm(`${data.from} veut discuter avec toi. Accepter ?`)) {
@@ -151,13 +259,11 @@
       }
     });
 
-    // 🎉 Acceptation reçue
     inviteChannel.bind("chat-accepted", data => {
       if (!partner) partner = data.from;
       subscribeToChat();
     });
 
-    // ❌ Quitter
     document.getElementById("quitBtn").onclick = () => {
       fetch("/message", {
         method: "POST",
@@ -175,7 +281,6 @@
       partner = null;
     };
 
-    // 🔄 Si on recharge la page
     window.addEventListener("beforeunload", () => {
       if (partner) {
         fetch("/message", {
