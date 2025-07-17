@@ -4,17 +4,19 @@ let partner = localStorage.getItem("partnerCode"); // adapte si besoin
 const micStatus = document.getElementById("micStatus");
 const callBtn = document.getElementById("callBtn");
 
+const callBtn = document.getElementById("callBtn");
+
 callBtn.addEventListener("click", async () => {
-  if (!partner) {
-    alert("Pas de partenaire sélectionné !");
-    return;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log("Micro OK, stream prêt", stream);
+    // Ici tu lances la connexion WebRTC en donnant le stream
+    startCall(stream);
+  } catch (err) {
+    alert("Micro refusé ou erreur, impossible de lancer l'appel");
   }
-  
-  // Si micro déjà autorisé, on démarre direct
-  if (localStream) {
-    startCall();
-    return;
-  }
+});
+
 
   // Sinon on demande l'autorisation micro ici (dans le clic)
   try {
