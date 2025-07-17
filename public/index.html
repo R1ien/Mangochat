@@ -209,6 +209,11 @@
       setTimeout(hideUI, 5000);
     });
 
+    currentChannel.bind("chat-started", data => {
+  showNotification(data.message);
+  // Ne pas fermer la conversation ici, juste afficher le message
+});
+
     document.getElementById("messages").innerHTML = "";
   }
 
