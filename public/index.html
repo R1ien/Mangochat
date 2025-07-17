@@ -1,401 +1,413 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>🥭 MangoChat 🍋</title>
-  <script src="https://js.pusher.com/8.2/pusher.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1" />
+  <title>MangoChat 🥭</title>
   <style>
-    /* Reset et base */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f9d423, #ff4e50);
+      color: #222;
+      margin: 0;
+      padding: 20px;
       max-width: 600px;
-      margin: auto;
-      background: #fff9e8;
-      color: #5c3a00;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
+      margin-left: auto;
+      margin-right: auto;
     }
     h1 {
       text-align: center;
-      font-weight: 900;
-      font-size: 2.5rem;
-      margin: 15px 0;
+      margin-bottom: 15px;
+      font-size: 2rem;
       user-select: none;
     }
-    main {
-      position: relative;
-      flex-grow: 1;
-      background: #fffde7;
-      border-radius: 25px;
-      box-shadow: 0 8px 20px rgba(255,179,71,0.4);
-      padding: 30px 35px;
-      overflow: hidden;
-      z-index: 0;
-    }
-    main::before {
-      content: "🥭🍋🥭🍋🥭🍋🥭🍋🥭🍋";
-      font-size: 4rem;
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      color: #fff3cdaa;
-      user-select: none;
-      pointer-events: none; /* important pour que le fond ne bloque rien */
-      white-space: nowrap;
-      overflow: hidden;
-      animation: emoji-slide 20s linear infinite;
-      filter: drop-shadow(0 0 3px #f7c457);
-      z-index: -1;
-    }
-    @keyframes emoji-slide {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(-100%); }
-    }
-
-    #myCode {
-      font-weight: 700;
-      font-size: 1.3rem;
-      color: #e67e22;
-    }
-    #partnerCode {
-      width: 100%;
-      padding: 12px 15px;
-      margin: 15px 0 20px 0;
-      border-radius: 20px;
-      border: 2px solid #ffd966;
-      font-size: 1rem;
-      box-shadow: 0 3px 8px rgba(255, 215, 102, 0.3);
-      transition: border-color 0.3s ease;
-    }
-    #partnerCode:focus {
-      outline: none;
-      border-color: #f39c12;
-    }
-
-    #notif {
-      background: #fff4c1;
-      border: 1.5px solid #ffd700;
-      padding: 12px 18px;
-      border-radius: 20px;
-      margin-bottom: 25px;
-      font-weight: 600;
-      font-size: 1rem;
-      color: #a36900;
-    }
-
     #messages {
-      height: 320px;
-      overflow-y: auto;
-      border: 1.5px solid #ffd966;
-      border-radius: 20px;
+      border: 2px solid #fff;
+      border-radius: 10px;
       padding: 15px;
-      background: #fffbe0;
-      box-shadow: inset 0 0 10px #ffea85;
-      font-size: 1rem;
-      line-height: 1.3;
-      color: #6b4a00;
+      height: 300px;
+      overflow-y: auto;
+      background: rgba(255 255 255 / 0.6);
+      margin-bottom: 10px;
     }
     .message {
-      padding: 8px 14px;
-      margin: 8px 0;
-      border-radius: 25px;
-      max-width: 75%;
+      margin-bottom: 8px;
+      max-width: 70%;
+      padding: 8px 12px;
+      border-radius: 15px;
       word-wrap: break-word;
-      box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
     }
     .from-me {
-      background: #ffeaa7;
+      background: #ff4e50;
+      color: #fff;
       margin-left: auto;
-      color: #5c3a00;
+      text-align: right;
     }
     .from-them {
-      background: #fff9d0;
+      background: #f9d423;
+      color: #222;
       margin-right: auto;
-      color: #5c3a00;
+      text-align: left;
     }
-
     #input-area {
-      display: none;
-      margin-top: 15px;
-      text-align: center;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
     }
     #messageInput {
-      width: 75%;
-      padding: 12px 18px;
-      border-radius: 25px;
-      border: 2px solid #ffd966;
-      font-size: 1rem;
-      box-shadow: 0 3px 6px rgba(255, 215, 102, 0.35);
-      transition: border-color 0.3s ease;
-    }
-    #messageInput:focus {
-      outline: none;
-      border-color: #f39c12;
-    }
-    button {
-      background: #f39c12;
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
       border: none;
-      padding: 12px 22px;
-      border-radius: 25px;
-      font-weight: 700;
       font-size: 1rem;
+    }
+    #sendBtn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 10px;
+      background: #222;
       color: #fff;
       cursor: pointer;
-      margin-left: 10px;
-      box-shadow: 0 5px 15px rgba(243, 156, 18, 0.7);
-      transition: background 0.3s ease;
+      font-weight: bold;
     }
-    button:hover {
-      background: #d67c0b;
+    #sendBtn:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+    #codeInput, #partnerCodeInput {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+    #inviteBtn, #acceptBtn, #rejectBtn, #quitBtn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 10px;
+      background: #222;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    #inviteSection, #chatSection {
+      margin-bottom: 20px;
+    }
+    #notification {
+      text-align: center;
+      background: rgba(255,255,255,0.8);
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: none;
+      font-weight: bold;
     }
 
-    /* MOBILE - responsive */
-    @media (max-width: 600px) {
+    /* Mobile zoom */
+    @media only screen and (max-width: 768px) {
       body {
-        padding: 15px 10px 40px;
+        font-size: 1.2rem;
+        padding: 10px;
       }
-      main {
-        padding: 20px 20px 30px;
-      }
-      h1 {
-        font-size: 2rem;
+      input, button {
+        font-size: 1.1rem;
+        padding: 14px;
       }
       #messages {
-        height: 280px;
+        height: 250px;
       }
-      #messageInput {
-        width: 65%;
-        padding: 14px 18px;
-        font-size: 1.1rem;
-      }
-      button {
-        padding: 14px 24px;
-        font-size: 1.1rem;
+      #input-area {
+        flex-direction: column;
+        gap: 12px;
       }
     }
-
-    @media only screen and (max-width: 768px) {
-  body {
-    font-size: 1.2rem;
-    padding: 10px;
-  }
-
-  input, button {
-    font-size: 1rem;
-    padding: 12px;
-  }
-
-  #messageInput {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  #messages {
-    height: 250px;
-  }
-
-  #input-area {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  h2 {
-    font-size: 1.5rem;
-    text-align: center;
-  }
-
-  .message {
-    font-size: 1rem;
-    max-width: 90%;
-  }
-}
-
   </style>
+  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
 </head>
 <body>
-  <h1>🥭 MangoChat 🍋</h1>
-  <main>
-    <h2>Ton code : <span id="myCode"></span></h2>
-    <input id="partnerCode" placeholder="Code de l'autre" autocomplete="off" />
-    <div id="notif" style="display:none;"></div>
+
+  <h1>MangoChat 🥭</h1>
+
+  <div id="notification"></div>
+
+  <div id="inviteSection">
+    <input id="codeInput" placeholder="Ton code utilisateur (ex: 1234)" />
+    <input id="partnerCodeInput" placeholder="Code partenaire pour inviter" />
+    <button id="inviteBtn">Envoyer invitation</button>
+    <div id="invitationPending" style="display:none; margin-top: 10px;">
+      Invitation en attente... <button id="cancelInviteBtn">Annuler</button>
+    </div>
+    <div id="inviteResponse" style="display:none; margin-top:10px;">
+      <button id="acceptBtn">Accepter</button>
+      <button id="rejectBtn">Refuser</button>
+    </div>
+  </div>
+
+  <div id="chatSection" style="display:none;">
     <div id="messages"></div>
     <div id="input-area">
       <input id="messageInput" placeholder="Écris un message..." autocomplete="off" />
-      <button onclick="send()">Envoyer</button>
-      <button id="quitBtn" style="display:none;">❌ Quitter la conversation</button>
+      <button id="sendBtn" disabled>Envoyer</button>
     </div>
-  </main>
+    <button id="quitBtn">❌ Quitter la conversation</button>
+  </div>
 
   <script>
-    const PUSHER_KEY = "21da0af69d3d1b97e425";
-    const PUSHER_CLUSTER = "eu";
-
-    const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
-    localStorage.setItem("code", myCode);
-    document.getElementById("myCode").textContent = myCode;
-
-    let partner = "";
+    // Pusher init
+    const pusher = new Pusher('21da0af69d3d1b97e425', { cluster: 'eu', authEndpoint: '', encrypted: true, auth: { params: { user_id: '' } } });
+    let myCode = null;
+    let partner = null;
     let isAccepted = false;
     let currentChannel = null;
-    let invitationPending = false;
 
-    const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+    // Elements
+    const notificationEl = document.getElementById('notification');
+    const codeInput = document.getElementById('codeInput');
+    const partnerCodeInput = document.getElementById('partnerCodeInput');
+    const inviteBtn = document.getElementById('inviteBtn');
+    const cancelInviteBtn = document.getElementById('cancelInviteBtn');
+    const invitationPending = document.getElementById('invitationPending');
+    const inviteResponse = document.getElementById('inviteResponse');
+    const acceptBtn = document.getElementById('acceptBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    const chatSection = document.getElementById('chatSection');
+    const messagesEl = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const quitBtn = document.getElementById('quitBtn');
 
-    const inviteChannel = pusher.subscribe("invite_" + myCode);
-
-    inviteChannel.bind("chat-invite", data => {
-      if (isAccepted) return;
-      window.inviteFrom = data.from;
-      showNotification(`${data.from} veut discuter avec toi. <button onclick="accept()">Accepter</button>`);
-    });
-
-    inviteChannel.bind("chat-accepted", data => {
-      if (isAccepted) return;
-      partner = data.from;
-      isAccepted = true;
-      subscribeToChat(partner);
-      showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "block";
-      invitationPending = false;
-    });
-
-    document.getElementById("partnerCode").addEventListener("change", function () {
-      const code = this.value.trim();
-      if (!code || code === myCode) return;
-      partner = code;
-      fetch('/invite', {
-        method: 'POST',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myCode, to: partner })
-      }).then(() => {
-        invitationPending = true;
-        showNotification("Invitation envoyée, en attente...");
-      });
-    });
-
-    function accept() {
-      isAccepted = true;
-      partner = window.inviteFrom;
-      fetch('/accept', {
-        method: 'POST',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myCode, to: partner })
-      }).then(() => {
-        subscribeToChat(partner);
-        showNotification("✅ Conversation acceptée !");
-        document.getElementById("input-area").style.display = "block";
-        invitationPending = false;
-      });
-    }
-
-    function subscribeToChat(other) {
-      if (currentChannel) pusher.unsubscribe(currentChannel.name);
-      const chName = "chat_" + [myCode, other].sort().join("_");
-      currentChannel = pusher.subscribe(chName);
-      currentChannel.bind("new-message", data => {
-        if (data.from === myCode) return; // éviter doublons
-        addMessage(data.text, false);
-      });
-      document.getElementById("messages").innerHTML = "";
-
-      currentChannel.bind("new-message", data => {
-  if (data.from === myCode) return;
-
-  if (data.text === "__quit__") {
-    showNotification("❌ L'utilisateur a quitté la conversation.");
-
-    // Supprimer le message après 5 sec
-    setTimeout(() => {
-      document.getElementById("notif").style.display = "none";
-    }, 5000);
-
-    partner = null;
-    isAccepted = false;
-    localStorage.removeItem('partnerCode');
-    localStorage.removeItem('messageHistory');
-    document.getElementById("messages").innerHTML = "";
-    document.getElementById("input-area").style.display = "none";
-    document.getElementById("quitBtn").style.display = "none";
-    return;
-  }
-
-  addMessage(data.text, false);
-});
-
-    }
-
-    function send() {
-      const text = document.getElementById("messageInput").value.trim();
-      if (!text || !partner || !isAccepted) return;
-      addMessage(text, true); // affichage direct côté sender
-      fetch('/message', {
-        method: 'POST',
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: myCode, to: partner, text })
-      });
-      document.getElementById("messageInput").value = "";
-    }
-
-    function addMessage(text, me) {
-      const div = document.createElement("div");
-      div.className = "message " + (me ? "from-me" : "from-them");
-      div.textContent = text;
-      document.getElementById("messages").appendChild(div);
-      document.getElementById("messages").scrollTop = 9999;
-    }
-
+    // Afficher notification
     function showNotification(msg) {
-      const notif = document.getElementById("notif");
-      notif.innerHTML = msg;
-      notif.style.display = "block";
+      notificationEl.textContent = msg;
+      notificationEl.style.display = 'block';
+      setTimeout(() => {
+        notificationEl.style.display = 'none';
+      }, 4000);
     }
 
-    // ... tout le code existant reste inchangé au-dessus ...
+    // Ajouter un message à l'affichage
+    function addMessage(text, fromMe) {
+      const div = document.createElement('div');
+      div.textContent = (fromMe ? "Toi: " : "Lui: ") + text;
+      div.className = 'message ' + (fromMe ? 'from-me' : 'from-them');
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
 
-// 🔁 Quitte automatiquement la conversation si on recharge ou ferme la page
-window.addEventListener('beforeunload', () => {
-  const code = localStorage.getItem('partnerCode');
-  if (code) {
-    channel.trigger('client-leave-conversation', {
-      sender: localStorage.getItem('myCode'),
-      receiver: code
+    // Envoyer message via Pusher client events
+    function sendMessage(text) {
+      if (!currentChannel || !partner) return;
+      if (!text.trim()) return;
+
+      addMessage(text, true);
+      currentChannel.trigger('client-new-message', {
+        from: myCode,
+        to: partner,
+        text: text
+      });
+      messageInput.value = '';
+      sendBtn.disabled = true;
+
+      // Sauvegarder local
+      let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+      history.push({ from: myCode, text: text });
+      localStorage.setItem('messageHistory', JSON.stringify(history));
+    }
+
+    // Ecoute les messages entrants
+    function subscribeToChat() {
+      if (currentChannel) currentChannel.unbind_all();
+      currentChannel = pusher.subscribe(`private-chat-${myCode}`);
+
+      currentChannel.bind('client-new-message', data => {
+        if (data.from === myCode) return; // Ignorer messages envoyés soi-même
+
+        if (data.text === "__quit__") {
+          showNotification("❌ L'utilisateur a quitté la conversation.");
+          setTimeout(() => { notificationEl.style.display = "none"; }, 5000);
+          resetConversation();
+          return;
+        }
+
+        addMessage(data.text, false);
+        // Sauvegarder local
+        let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+        history.push({ from: data.from, text: data.text });
+        localStorage.setItem('messageHistory', JSON.stringify(history));
+      });
+
+      currentChannel.bind('client-invite', data => {
+        if (data.to === myCode) {
+          partner = data.from;
+          inviteResponse.style.display = 'block';
+          showNotification(`Nouvelle invitation de ${partner}`);
+        }
+      });
+
+      currentChannel.bind('client-invite-accepted', data => {
+        if (data.from === partner) {
+          isAccepted = true;
+          showNotification("Conversation acceptée !");
+          startChat();
+        }
+      });
+
+      currentChannel.bind('client-invite-rejected', data => {
+        if (data.from === partner) {
+          inviteResponse.style.display = 'none';
+          invitationPending.style.display = 'none';
+          showNotification("Invitation refusée");
+          resetConversation();
+        }
+      });
+
+      currentChannel.bind('client-leave-conversation', data => {
+        if (data.from === partner) {
+          showNotification("❌ L'utilisateur a quitté la conversation.");
+          setTimeout(() => { notificationEl.style.display = "none"; }, 5000);
+          resetConversation();
+        }
+      });
+    }
+
+    // Démarrer chat
+    function startChat() {
+      inviteResponse.style.display = 'none';
+      invitationPending.style.display = 'none';
+      chatSection.style.display = 'block';
+      quitBtn.style.display = 'inline-block';
+      messageInput.focus();
+      sendBtn.disabled = true;
+
+      // Charger historique local
+      const history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+      messagesEl.innerHTML = '';
+      for (const m of history) {
+        addMessage(m.text, m.from === myCode);
+      }
+    }
+
+    // Réinitialiser conversation
+    function resetConversation() {
+      partner = null;
+      isAccepted = false;
+      localStorage.removeItem('partnerCode');
+      localStorage.removeItem('messageHistory');
+      chatSection.style.display = 'none';
+      inviteResponse.style.display = 'none';
+      invitationPending.style.display = 'none';
+      quitBtn.style.display = 'none';
+      messagesEl.innerHTML = '';
+      messageInput.value = '';
+      sendBtn.disabled = true;
+      partnerCodeInput.value = '';
+    }
+
+    // Envoyer invitation
+    inviteBtn.addEventListener('click', () => {
+      const code = codeInput.value.trim();
+      const partnerCode = partnerCodeInput.value.trim();
+      if (!code || !partnerCode) {
+        alert("Entre ton code et celui du partenaire");
+        return;
+      }
+      if (code === partnerCode) {
+        alert("Tu ne peux pas t'inviter toi-même");
+        return;
+      }
+      myCode = code;
+      partner = partnerCode;
+      localStorage.setItem('myCode', myCode);
+      localStorage.setItem('partnerCode', partner);
+      isAccepted = false;
+
+      subscribeToChat();
+
+      currentChannel.trigger('client-invite', {
+        from: myCode,
+        to: partner
+      });
+
+      invitationPending.style.display = 'block';
+      inviteBtn.disabled = true;
     });
-    localStorage.removeItem('partnerCode');
-    localStorage.removeItem('messageHistory');
-  }
-});
 
-// ... tout le code existant reste inchangé en dessous ...
+    cancelInviteBtn.addEventListener('click', () => {
+      invitationPending.style.display = 'none';
+      inviteBtn.disabled = false;
+      resetConversation();
+    });
 
-    document.getElementById("quitBtn").addEventListener("click", () => {
-  if (!partner || !isAccepted) return;
+    acceptBtn.addEventListener('click', () => {
+      if (!partner) return;
+      isAccepted = true;
+      localStorage.setItem('partnerCode', partner);
 
-  // Envoyer un message au partenaire
-  fetch('/message', {
-    method: 'POST',
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: myCode, to: partner, text: "__quit__" })
-  });
+      currentChannel.trigger('client-invite-accepted', {
+        from: myCode,
+        to: partner
+      });
 
-  // Afficher une notification locale
-  showNotification("❌ Tu as quitté la conversation.");
+      startChat();
+    });
 
-  // Nettoyage local
-  localStorage.removeItem('partnerCode');
-  localStorage.removeItem('messageHistory');
-  document.getElementById("messages").innerHTML = "";
-  document.getElementById("input-area").style.display = "none";
-  document.getElementById("quitBtn").style.display = "none";
+    rejectBtn.addEventListener('click', () => {
+      if (!partner) return;
 
-  // Réinitialise tout
-  partner = null;
-  isAccepted = false;
-});
+      currentChannel.trigger('client-invite-rejected', {
+        from: myCode,
+        to: partner
+      });
 
+      resetConversation();
+    });
+
+    // Envoyer message
+    sendBtn.addEventListener('click', () => {
+      sendMessage(messageInput.value);
+    });
+
+    messageInput.addEventListener('input', () => {
+      sendBtn.disabled = messageInput.value.trim().length === 0;
+    });
+
+    // Bouton quitter conversation
+    quitBtn.addEventListener('click', () => {
+      if (!partner || !isAccepted) return;
+
+      currentChannel.trigger('client-new-message', {
+        from: myCode,
+        to: partner,
+        text: "__quit__"
+      });
+
+      showNotification("❌ Tu as quitté la conversation.");
+
+      resetConversation();
+    });
+
+    // Quitter conversation à la fermeture ou reload page
+    window.addEventListener('beforeunload', () => {
+      if (!myCode || !partner) return;
+      currentChannel.trigger('client-leave-conversation', {
+        from: myCode,
+        to: partner
+      });
+      resetConversation();
+    });
+
+    // Recharger infos au reload
+    window.addEventListener('load', () => {
+      myCode = localStorage.getItem('myCode');
+      partner = localStorage.getItem('partnerCode');
+      if (myCode && partner) {
+        subscribeToChat();
+        isAccepted = true;
+        startChat();
+      }
+    });
   </script>
 </body>
 </html>
