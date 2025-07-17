@@ -1,332 +1,194 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1" />
-<title>MangoChat 🥭</title>
-<style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #ffec99, #fda085);
-    margin: 0; padding: 20px;
-    display: flex; flex-direction: column; align-items: center;
-    height: 100vh; overflow: hidden;
-  }
-  h1 {
-    font-size: 2rem;
-    margin-bottom: 10px;
-    user-select: none;
-  }
-  #myPseudoDisplay {
-    font-weight: bold;
-    margin-bottom: 15px;
-    font-size: 1.2rem;
-    color: #ef6c00;
-  }
-  #login, #chat {
-    background: rgba(255,255,255,0.9);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 0 10px #ffa726aa;
-    width: 100%;
-    max-width: 400px;
-  }
-  #login {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  label {
-    font-weight: bold;
-  }
-  input[type=text] {
-    padding: 10px;
-    font-size: 1rem;
-    border-radius: 8px;
-    border: 1px solid #f9a825;
-    width: 100%;
-  }
-  button {
-    background-color: #f9a825;
-    border: none;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    color: #fff;
-    transition: background-color 0.3s ease;
-  }
-  button:hover {
-    background-color: #ef6c00;
-  }
-  #chat {
-    display: none;
-    flex-direction: column;
-    height: 80vh;
-  }
-  #messages {
-    flex-grow: 1;
-    background: #fff7e6;
-    border-radius: 8px;
-    padding: 10px;
-    overflow-y: auto;
-    margin-bottom: 10px;
-    font-size: 1rem;
-  }
-  .message {
-    margin-bottom: 8px;
-    word-wrap: break-word;
-  }
-  .message.me {
-    color: #ef6c00;
-    font-weight: bold;
-    text-align: right;
-  }
-  .message.partner {
-    color: #388e3c;
-    font-weight: bold;
-    text-align: left;
-  }
-  #input-area {
-    display: flex;
-    gap: 10px;
-  }
-  #messageInput {
-    flex-grow: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #f9a825;
-    font-size: 1rem;
-  }
-  #quitBtn {
-    margin-top: 10px;
-    background-color: #d84315;
-  }
-  #notif {
-    background: #fff3e0;
-    border: 1px solid #ffa726;
-    padding: 8px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    display: none;
-    font-weight: bold;
-    text-align: center;
-  }
-  /* Mobile zoom */
-  @media only screen and (max-width: 768px) {
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🥭 MangoChat</title>
+  <style>
     body {
-      font-size: 1.2rem;
-      padding: 10px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    input, button {
-      font-size: 1rem;
-      padding: 12px;
+    header {
+      background: #fdcb6e;
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      font-size: 1.8em;
+      font-weight: bold;
+    }
+    main {
+      padding: 20px;
+      width: 100%;
+      max-width: 600px;
+      box-sizing: border-box;
     }
     #messages {
-      height: 250px;
+      border: 2px solid #e17055;
+      background: #fff;
+      height: 300px;
+      overflow-y: scroll;
+      padding: 10px;
+      margin-bottom: 10px;
     }
     #input-area {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 10px;
+      display: flex;
+      gap: 5px;
     }
-  }
-</style>
+    #input-area input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+    }
+    #input-area button {
+      padding: 8px 12px;
+      background: #00b894;
+      border: none;
+      color: white;
+    }
+    #notif {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #d63031;
+    }
+    #quitBtn {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #d63031;
+      color: white;
+      border: none;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 1.2em;
+        zoom: 1.2;
+      }
+    }
+  </style>
 </head>
 <body>
+  <header>🥭 MangoChat</header>
+  <main>
+    <div id="notif"></div>
+    <div><strong>Ton pseudo:</strong> <span id="yourName"></span></div>
+    <div id="messages"></div>
+    <div id="input-area" style="display:none">
+      <input id="message" placeholder="Écris ton message...">
+      <button onclick="sendMessage()">Envoyer</button>
+    </div>
+    <button id="quitBtn" style="display:none">❌ Quitter la conversation</button>
+  </main>
+  <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
+  <script>
+    let myName = localStorage.getItem('myName');
+    let partner = localStorage.getItem('partnerName');
+    let isAccepted = false;
 
-<h1>MangoChat 🥭</h1>
-
-<div id="myPseudoDisplay" style="display:none;">
-  Ton pseudo : <span id="pseudoText"></span>
-</div>
-
-<div id="login">
-  <label for="partnerPseudo">Pseudo de la personne :</label>
-  <input id="partnerPseudo" type="text" placeholder="Pseudo de ton contact" />
-  
-  <button id="sendInviteBtn">Envoyer invitation</button>
-  
-  <div id="notif" style="display:none;"></div>
-</div>
-
-<div id="chat">
-  <div id="messages"></div>
-  <div id="input-area" style="display:none;">
-    <input id="messageInput" type="text" placeholder="Écris un message..." />
-    <button id="sendMsgBtn">Envoyer</button>
-  </div>
-  <button id="quitBtn" style="display:none;">❌ Quitter la conversation</button>
-</div>
-
-<script src="https://js.pusher.com/7.2/pusher.min.js"></script>
-<script>
-  let myPseudo = null;
-  let partner = null;
-  let isAccepted = false;
-  let currentChannel = null;
-
-  // Demander pseudo une seule fois avec prompt
-  function askPseudo() {
-    let saved = localStorage.getItem('myPseudo');
-    if (saved) {
-      myPseudo = saved;
-      showMyPseudo();
-    } else {
-      let p = null;
-      do {
-        p = prompt("Choisis ton pseudo (sans espace, max 15 caractères) :");
-        if (!p) alert('Pseudo obligatoire');
-        else if (p.length > 15) alert('Pseudo trop long');
-        else if (p.trim() === '') alert('Pseudo invalide');
-      } while (!p || p.trim() === '' || p.length > 15);
-      myPseudo = p.trim();
-      localStorage.setItem('myPseudo', myPseudo);
-
-      // TODO: ici envoyer myPseudo au serveur pour sauvegarde dans la base
-      // fetch('/save-pseudo', {method:'POST', body: JSON.stringify({pseudo: myPseudo}), headers:{'Content-Type':'application/json'}})
-      showMyPseudo();
+    if (!myName) {
+      myName = prompt("Choisis ton pseudo:");
+      if (myName) localStorage.setItem('myName', myName);
     }
-  }
+    document.getElementById("yourName").innerText = myName;
 
-  // Afficher pseudo en haut
-  function showMyPseudo() {
-    document.getElementById('myPseudoDisplay').style.display = 'block';
-    document.getElementById('pseudoText').textContent = myPseudo;
-  }
-
-  // Init Pusher
-  const pusher = new Pusher('21da0af69d3d1b97e425', {
-    cluster: 'eu',
-  });
-
-  function showNotification(msg) {
-    const notif = document.getElementById('notif');
-    notif.innerText = msg;
-    notif.style.display = 'block';
-  }
-
-  function addMessage(text, isMe) {
-    const messagesDiv = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = 'message ' + (isMe ? 'me' : 'partner');
-    div.textContent = (isMe ? 'Toi: ' : partner + ': ') + text;
-    messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  }
-
-  function sendMessage(text) {
-    if (!currentChannel || !isAccepted) return;
-    addMessage(text, true);
-
-    currentChannel.trigger('client-new-message', {
-      from: myPseudo,
-      to: partner,
-      text
+    const pusher = new Pusher("21da0af69d3d1b97e425", {
+      cluster: "eu",
+      encrypted: true
     });
-  }
 
-  function subscribeToChat() {
-    if (currentChannel) {
-      pusher.unsubscribe('private-chat-' + myPseudo);
+    function showNotification(msg) {
+      const notif = document.getElementById("notif");
+      notif.innerText = msg;
+      notif.style.display = "block";
+      setTimeout(() => notif.style.display = "none", 5000);
     }
 
-    currentChannel = pusher.subscribe('private-chat-' + myPseudo);
-
-    currentChannel.bind('client-new-message', data => {
-      if (data.from === myPseudo) return;
-
-      if (data.text === '__quit__') {
-        showNotification('❌ ' + partner + ' a quitté la conversation.');
-        setTimeout(() => {
-          document.getElementById('notif').style.display = 'none';
-        }, 5000);
-        resetConversation();
-        return;
+    const inviteChannel = pusher.subscribe("invite_" + myName);
+    inviteChannel.bind("chat-invite", data => {
+      if (confirm(`${data.from} veut discuter avec toi. Accepter ?`)) {
+        partner = data.from;
+        localStorage.setItem('partnerName', partner);
+        fetch('/accept', {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from: myName, to: partner })
+        });
       }
-
-      addMessage(data.text, false);
     });
 
-  currentChannel.bind('invite', data => {
-  if (data.to !== myPseudo) return;
-  if (isAccepted || partner) return;
+    inviteChannel.bind("chat-accepted", data => {
+      partner = data.from;
+      localStorage.setItem('partnerName', partner);
+      document.getElementById("input-area").style.display = "flex";
+      document.getElementById("quitBtn").style.display = "block";
+      isAccepted = true;
+    });
 
-  showNotification(`Invitation reçue de ${data.from} ! Accepter ?`);
-  const accept = confirm(`Accepter la conversation avec ${data.from} ?`);
-  if (accept) {
-    partner = data.from;
-    isAccepted = true;
-    localStorage.setItem('partnerCode', partner);
-    showNotification(`Conversation acceptée avec ${partner}`);
-    document.getElementById('quitBtn').style.display = 'block';
-    subscribeToChat();
-  } else {
-    showNotification(`Invitation refusée.`);
-  }
-});
+    const channelName = getChatChannel(myName, partner);
+    const chatChannel = pusher.subscribe(channelName);
+    chatChannel.bind("chat-started", data => showNotification(data.message));
+    chatChannel.bind("new-message", data => {
+      if (data.from === myName) return;
+      addMessage(`${data.from}: ${data.text}`, false);
+    });
 
-
-  function resetConversation() {
-    partner = null;
-    isAccepted = false;
-    document.getElementById('messages').innerHTML = '';
-    document.getElementById('input-area').style.display = 'none';
-    document.getElementById('quitBtn').style.display = 'none';
-  }
-
-  window.onload = () => {
-    askPseudo();
-    subscribeToChat();
-
-   document.getElementById('sendInviteBtn').onclick = () => {
-  const target = document.getElementById('partnerPseudo').value.trim();
-  if (!target) {
-    alert('Entre un pseudo valide');
-    return;
-  }
-  if (target === myPseudo) {
-    alert('Tu ne peux pas t\'inviter toi-même !');
-    return;
-  }
-
-  fetch('http://localhost:3000/send-invite', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({from: myPseudo, to: target}),
-  }).then(res => {
-    if (res.ok) {
-      showNotification(`Invitation envoyée à ${target}. En attente de réponse...`);
-      partner = target;
-      isAccepted = false;
-    } else {
-      alert('Erreur lors de l\'envoi de l\'invitation');
-    }
-  }).catch(() => alert('Erreur réseau'));
-};
-
-    document.getElementById('sendMsgBtn').onclick = () => {
-      const msg = document.getElementById('messageInput').value.trim();
-      if (!msg) return;
-      sendMessage(msg);
-      document.getElementById('messageInput').value = '';
-      document.getElementById('input-area').style.display = 'flex';
-    };
-
-    document.getElementById('quitBtn').onclick = () => {
-      if (!currentChannel || !partner) return;
-
-      currentChannel.trigger('client-new-message', {
-        from: myPseudo,
-        to: partner,
-        text: '__quit__'
+    function sendMessage() {
+      const input = document.getElementById("message");
+      const text = input.value;
+      if (!text) return;
+      input.value = "";
+      addMessage(`Toi: ${text}`, true);
+      fetch('/message', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: myName, to: partner, text })
       });
-      resetConversation();
-      showNotification('Tu as quitté la conversation.');
-    };
-  };
-</script>
+    }
 
+    function addMessage(text, fromMe) {
+      const msgBox = document.getElementById("messages");
+      const p = document.createElement("p");
+      p.innerText = text;
+      msgBox.appendChild(p);
+      msgBox.scrollTop = msgBox.scrollHeight;
+    }
+
+    document.getElementById("quitBtn").addEventListener("click", () => {
+      if (!partner || !isAccepted) return;
+      fetch('/message', {
+        method: 'POST',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from: myName, to: partner, text: "__quit__" })
+      });
+      showNotification("❌ Tu as quitté la conversation.");
+      localStorage.removeItem('partnerName');
+      document.getElementById("messages").innerHTML = "";
+      document.getElementById("input-area").style.display = "none";
+      document.getElementById("quitBtn").style.display = "none";
+      isAccepted = false;
+    });
+
+    chatChannel.bind("new-message", data => {
+      if (data.text === "__quit__") {
+        showNotification("❌ L'autre utilisateur a quitté la conversation.");
+        localStorage.removeItem('partnerName');
+        document.getElementById("messages").innerHTML = "";
+        document.getElementById("input-area").style.display = "none";
+        document.getElementById("quitBtn").style.display = "none";
+        isAccepted = false;
+      }
+    });
+
+    function getChatChannel(a, b) {
+      if (!a || !b) return "temp";
+      return "chat_" + [a, b].sort().join("_");
+    }
+  </script>
 </body>
 </html>
