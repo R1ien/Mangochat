@@ -1,40 +1,36 @@
-// call.js complet prêt à coller
-
 let localStream = null;
-let partner = localStorage.getItem("partnerCode"); // Ou ta variable partenaire comme tu veux
+let partner = localStorage.getItem("partnerCode"); // adapte si besoin
 
-// Demande d'autorisation micro dès le début
-navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-  .then(stream => {
-    localStream = stream;
-    console.log("🎤 Micro prêt !");
-    document.getElementById("micStatus").textContent = "🎤 Micro : prêt ✅";
-  })
-  .catch(err => {
-    console.error("Erreur d'accès au micro:", err);
-    alert("Tu dois autoriser l'accès au micro pour utiliser la fonction appel.");
-    document.getElementById("micStatus").textContent = "🎤 Micro : non autorisé ❌";
-  });
+const micStatus = document.getElementById("micStatus");
+const callBtn = document.getElementById("callBtn");
 
-// Bouton Appeler
-document.getElementById("callBtn").addEventListener("click", () => {
+callBtn.addEventListener("click", async () => {
   if (!partner) {
     alert("Pas de partenaire sélectionné !");
     return;
   }
-  if (!localStream) {
-    alert("Le micro n'est pas prêt. Autorise-le puis recharge la page.");
+  
+  // Si micro déjà autorisé, on démarre direct
+  if (localStream) {
+    startCall();
     return;
   }
-  startCall();
+
+  // Sinon on demande l'autorisation micro ici (dans le clic)
+  try {
+    micStatus.textContent = "🎤 Demande d'accès au micro...";
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    micStatus.textContent = "🎤 Micro : prêt ✅";
+    console.log("Micro autorisé et stream prêt");
+    startCall();
+  } catch (err) {
+    micStatus.textContent = "🎤 Micro : non autorisé ❌";
+    alert("Tu dois autoriser l'accès au micro pour utiliser la fonction appel.");
+    console.error("Erreur micro :", err);
+  }
 });
 
 function startCall() {
+  alert("Appel démarré (à coder la connexion WebRTC ici) avec " + partner);
   console.log("📞 Appel démarré avec " + partner);
-  // Ici tu commenceras la logique WebRTC plus tard
-  alert("C'est ici que tu démarres la connexion WebRTC.");
 }
-
-// Statut micro affiché dans HTML
-// Tu dois avoir dans ton index.html :
-// <p id="micStatus">🎤 Micro : en attente...</p>
