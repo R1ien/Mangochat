@@ -132,15 +132,16 @@
   const PUSHER_KEY = "21da0af69d3d1b97e425";
   const PUSHER_CLUSTER = "eu";
 
-  const myCode = localStorage.getItem("code") || Math.floor(100000 + Math.random() * 900000).toString();
-  localStorage.setItem("code", myCode);
+  const myCode = localStorage.getItem("fixed_code") || (function () {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    localStorage.setItem("fixed_code", code);
+    return code;
+  })();
   document.getElementById("myCode").textContent = myCode;
 
-  let partner = localStorage.getItem("partner") || "";
-  let isAccepted = localStorage.getItem("accepted") === "true";
+  let partner = "";
+  let isAccepted = false;
   let currentChannel = null;
-  let invitationPending = false;
-  let messageHistory = JSON.parse(localStorage.getItem("messages") || "[]");
 
   const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
   const inviteChannel = pusher.subscribe("invite_" + myCode);
@@ -148,41 +149,26 @@
   inviteChannel.bind("chat-invite", data => {
     if (isAccepted) return;
     window.inviteFrom = data.from;
-    showNotification(`${data.from} veut discuter avec toi. <button onclick=\"accept()\">Accepter</button>`);
+    showNotification(`${data.from} veut discuter avec toi. <button onclick="accept()">Accepter</button>`);
   });
 
   inviteChannel.bind("chat-accepted", data => {
-    if (!isAccepted) {
-      partner = data.from;
-      isAccepted = true;
-      localStorage.setItem("partner", partner);
-      localStorage.setItem("accepted", "true");
-      subscribeToChat(partner);
-      showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "flex";
-      invitationPending = false;
-    } else {
-      showNotification("✅ Conversation acceptée !");
-      invitationPending = false;
-    }
-  });
-
-  if (isAccepted && partner) {
+    partner = data.from;
+    isAccepted = true;
     subscribeToChat(partner);
-    document.getElementById("input-area").style.display = "flex";
-  }
+    showUI();
+    showNotification("✅ Conversation acceptée !");
+  });
 
   document.getElementById("partnerCode").addEventListener("change", function () {
     const code = this.value.trim();
     if (!code || code === myCode) return;
     partner = code;
-    localStorage.setItem("partner", partner);
     fetch('/invite', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
     }).then(() => {
-      invitationPending = true;
       showNotification("Invitation envoyée, en attente...");
     });
   });
@@ -190,17 +176,14 @@
   function accept() {
     isAccepted = true;
     partner = window.inviteFrom;
-    localStorage.setItem("partner", partner);
-    localStorage.setItem("accepted", "true");
     fetch('/accept', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
     }).then(() => {
       subscribeToChat(partner);
+      showUI();
       showNotification("✅ Conversation acceptée !");
-      document.getElementById("input-area").style.display = "flex";
-      invitationPending = false;
     });
   }
 
@@ -208,43 +191,33 @@
     if (currentChannel) pusher.unsubscribe(currentChannel.name);
     const chName = "chat_" + [myCode, other].sort().join("_");
     currentChannel = pusher.subscribe(chName);
+
     currentChannel.bind("new-message", data => {
+      if (!isAccepted) return;
       if (data.from === myCode) return;
       addMessage(data.text, false);
     });
+
     currentChannel.bind("user-left", data => {
       showNotification(data.message);
-      setTimeout(() => {
-        document.getElementById("input-area").style.display = "none";
-        localStorage.removeItem("partner");
-        localStorage.removeItem("accepted");
-        localStorage.removeItem("messages");
-      }, 2000);
+      isAccepted = false;
+      setTimeout(hideUI, 5000);
     });
+
     document.getElementById("messages").innerHTML = "";
-    messageHistory.forEach(msg => addMessage(msg.text, msg.me));
   }
 
-function send() {
-  const input = document.getElementById("message-input");
-  const text = input.value.trim();
-  if (!text || !partner) return;
-
-  const messageId = Date.now().toString(); // ID unique par message
-
-  addMessage(text, true);
-
-  lastMessageId = messageId; // ← ajoute cette ligne pour éviter de le recevoir ensuite
-
-  fetch("/message", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from: myCode, to: partner, text, id: messageId })
-  });
-
-  input.value = "";
-}
-
+  function send() {
+    const text = document.getElementById("messageInput").value.trim();
+    if (!text || !partner || !isAccepted) return;
+    fetch('/message', {
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ from: myCode, to: partner, text })
+    });
+    addMessage(text, true);
+    document.getElementById("messageInput").value = "";
+  }
 
   function addMessage(text, me) {
     const div = document.createElement("div");
@@ -252,8 +225,6 @@ function send() {
     div.textContent = text;
     document.getElementById("messages").appendChild(div);
     document.getElementById("messages").scrollTop = 9999;
-    messageHistory.push({ text, me });
-    localStorage.setItem("messages", JSON.stringify(messageHistory));
   }
 
   function showNotification(msg) {
@@ -262,22 +233,31 @@ function send() {
     notif.style.display = "block";
   }
 
+  function hideUI() {
+    document.getElementById("input-area").style.display = "none";
+    document.getElementById("messages").style.display = "none";
+  }
+
+  function showUI() {
+    document.getElementById("input-area").style.display = "flex";
+    document.getElementById("messages").style.display = "block";
+  }
+
   function quit() {
+    if (!partner) return;
     fetch('/quit', {
       method: 'POST',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ from: myCode, to: partner })
     });
-    localStorage.removeItem("partner");
-    localStorage.removeItem("accepted");
-    localStorage.removeItem("messages");
     isAccepted = false;
     partner = "";
     if (currentChannel) pusher.unsubscribe(currentChannel.name);
-    document.getElementById("input-area").style.display = "none";
     showNotification("❌ Conversation quittée.");
+    setTimeout(hideUI, 5000);
   }
 </script>
+
 
 </body>
 </html>
